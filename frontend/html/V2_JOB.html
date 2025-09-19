@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>JOB SELECTION</title>
+
+  <!-- Font Awesome offline (atur sesuai folder anda) -->
+  <link rel="stylesheet" href="assets/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="css/v2_job.css"/>
+</head>
+<body class="job-dashboard">
+
+  <!-- Barcode Preview -->
+  <div id="preview" class="preview hidden">
+    <div class="preview-box">
+      <video id="video" autoplay></video>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <button class="btn-header" id="btnBack">
+      <i class="fa fa-arrow-left"></i> BACK
+    </button>
+    <h1>JOB SELECTION</h1>
+    <button class="btn-header" id="btnRefresh">
+      <i class="fa fa-sync"></i> REFRESH
+    </button>
+  </header>
+
+  <!-- Content -->
+  <main class="main-content">
+    <!-- Search -->
+    <div class="search-bar">
+      <input id="orderinput" type="text" placeholder="Search Order…"/>
+      <button class="btn-action" id="btnSearch">
+        <i class="fa fa-search"></i> Search
+      </button>
+      <button class="btn-action" id="scanBtn">
+        <i class="fa fa-barcode"></i> Barcode
+      </button>
+    </div>
+
+    <!-- Table Header -->
+    <div class="table-head">
+      <div>Production Order</div>
+      <div>Activity</div>
+      <div>Seq</div>
+      <div>Hours</div>
+      <div>Workcenter</div>
+    </div>
+
+    <!-- Data Rows -->
+    <div id="gallery" class="table-body"></div>
+  </main>
+
+  <script src="js/V2_JOB.js"></script>
+</body>
+</html>
