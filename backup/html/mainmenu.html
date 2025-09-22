@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MENU</title>
+    <link rel="stylesheet" href="../css/style.css" />
+  </head>
+    
+      <div class="container-vertical" style="gap:5px; ">
+        <div class="container-title-horizontal" style="padding: 0px; overflow:hidden;display:flex;align-items:center;justify-content:space-between">
+          <div class="button-utama full" style="max-width: 100px;border-radius: 12px;" onclick="goHome()">
+            BACK
+          </div>
+        
+          <div class="container-horizontal-child" style="background: none;border:none">
+          <label class="switch">
+  <input type="checkbox" id="myswitch">
+  <span class="slider"></span>
+  </label>
+<span id="switchLabel">Single</span>
+</label>
+</div>
+
+<div class="button-utama full" style="max-width: 100px;border-radius: 12px;">REFRESH</div>
+        </div>
+        <div class="container-horizontal" style="border: none;padding:0px">
+          <div class="container-vertical-child" >
+  <div class="form-box">
+  <div class="row">
+    <div class="label">NAMA</div>
+    <div id="namaku" class="value"></div>
+  </div>
+  <div class="row">
+    <div class="label">SN KARYAWAN</div>
+    <div id="snku" class="value"></div>
+  </div>
+  <div class="row">
+    <div class="label">WORK CENTER</div>
+    <div id="wctku" class="value"></div>
+  </div>
+  <!-- <div class="row">
+    <div class="label">PART NAME</div>
+    <div class="value">Rotable Axle 10cm with proper build Trakindo</div>
+  </div> -->
+  <div class="row">
+    <div class="label">PROD ORDER</div>
+    <div id="orderku" class="value"></div>
+  </div>
+  <div class="row">
+    <div class="label">ACTIVITY</div>
+    <div id="activityku" class="value"></div>
+  </div>
+  
+</div>
+<div class="container-horizontal-child" style="padding: 5px; border:none;flex:1">
+     <div class="button-utama full">REWORK</div>
+        <div class="button-utama full" onclick="finish();">FINISH</div>
+</div>
+          </div>
+          <div class="container-vertical-child" >
+          <div class="container-horizontal-child" style="padding: 5px;border:none">
+          <div class="button-utama full" onclick="postdata();">START</div>
+        <div class="button-utama full"  onclick="gotojob();">SELECT JOB</div>
+        </div>
+          <div class="container-horizontal-child" style="padding: 5px;border:none">
+        <div class="button-utama full" onclick="gotomesin();">SELECT MACHINE</div>
+        <div class="button-utama full">PROCESS CONTROL</div>
+          </div>
+          <div class="container-horizontal-child" style="padding: 5px;border:none">
+               <div class="button-utama full" onclick="gotots();">VIEW TIMESHEET</div>
+        <div class="button-utama full">CONSUMABLE & TOOLS</div>
+          </div>
+              </div>
+          
+        </div>
+       
+  <script src="../js/previewdata.js"></script>      
+<script src="../js/script.js"></script>
+<script src = "../js/postdata.js"></script>
+<script>
+
+</script>
+
+        </div>
+    </div>
+    
+
+  </body>
+</html>

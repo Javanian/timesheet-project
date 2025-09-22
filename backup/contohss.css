@@ -1,0 +1,140 @@
+* {
+  margin: 0; /* hilangkan margin default */
+  padding: 0; /* hilangkan padding default */
+  box-sizing: border-box; /* hitung ukuran termasuk border & padding */
+  font-family: Arial, sans-serif;
+}
+html,
+body {
+  height: 100%; /* pastikan body juga full */
+  overflow: hidden;
+}
+
+.container{
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgb(230, 216, 198);
+    flex-direction: column;
+    gap: 5px;
+    padding: 15px;
+    border-radius: 15px;
+    
+   
+    
+}
+
+.containerchild1{
+    display: flex;
+    flex:0.5;
+    background-color: rgb(215, 228, 228);
+    border-width: 1px;
+    border-style: solid;
+    min-height: 0px;
+    
+}
+.containerchild2{
+    display: flex;
+    gap: 15px;
+    flex:2;
+    background-color: rgb(182, 201, 189);
+    min-height: 10px;
+    border-width: 1px;
+    border-style: solid;
+    padding: 5px;
+    min-height: 0px;
+    justify-content: center; /* isi sejajar ke tengah secara horizontal */
+    align-items: center; /* isi sejajar ke tengah secara vertical */
+    height: 100%;
+}
+
+.containerchild3{
+    display: flex;
+    gap: 15px;
+    flex:4;
+    background-color: rgb(145, 107, 73);
+    border-width: 1px;
+    border-style: solid;
+    overflow: auto;
+}
+
+.labeltext{
+  font-size: small;
+  font-family: sans-serif;  
+}
+
+.gallery {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  flex: 1;
+  gap: 10px;
+  
+  flex: 1; /* atur tinggi maksimal */
+  overflow-y: auto; /* kasih scroll vertikal */
+  overflow-x: hidden;
+  
+}
+
+.gallery-header {
+  display: flex;
+  height: 20px;
+  border: solid;
+  border-radius: 10px;
+  gap: 10px;
+  font-weight: bold;
+  padding: 10px;
+}
+.item {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  gap: 5px;
+  border: 1px solid #ccc;
+  flex-direction: row;
+  border-radius: 10px;
+  padding: 5px;
+  background: #f9f9f9;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  font-size: 15px;
+}
+.textbox {
+  display: flex;
+  flex: 0 0 auto; /* biar rata lebar */
+  padding: 5px;
+  height: 50px;
+  border: 1px solid #999;
+  border-radius: 5px;
+  justify-content: center; /* horizontal center */
+  align-items: center; /* vertical center */
+  text-align: center; /* tambahan untuk teks multiline */
+  background: #fff;
+}
+
+.textbox.order {
+  flex: 2; /* lebih lebar */
+  max-width: 150px;
+
+  border-color: #007bff;
+}
+.textbox.seq {
+  flex: 1;
+  max-width: 50px;
+
+  border-color: #28a745;
+}
+.textbox.hrs {
+  flex: 1;
+  max-width: 70px;
+  border-color: #ffc107;
+}
+.textbox.act {
+  flex: 3;
+  border-color: #dc3545;
+}
+.textbox.wct {
+  flex: 1;
+  border-color: #079949;
+  max-width: 75px;
+  font-size: 13px;
+}
