@@ -21,6 +21,90 @@ exports.getById = async (req, res) => {
   }
 };
 
+exports.get2data = async (req, res) => {
+  try {
+    const { search } = req.query;
+    
+    let query = 'SELECT * FROM sow WHERE 1=1';
+    const params = [];
+
+    if (search) {
+      query += ` AND (order_no ILIKE $1 OR ssbr_id ILIKE $1)`;
+      params.push(`%${search}%`);
+    }
+
+    query += ' ORDER BY operation_no ASC';
+
+    const result = await db.query(query, params);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Data not found' });
+    }
+
+    const columns = Object.keys(result.rows[0]);
+
+    // Buat header CSV
+    const csvHeader = columns.join(",") + "\n";
+
+    // Convert data ke format CSV
+    const csvData = result.rows
+      .map((row) => {
+        return columns
+          .map((col) => {
+            let value = row[col];
+            if (value === null || value === undefined) {
+              value = "";
+            }
+            if (
+              typeof value === "string" &&
+              (value.includes(",") || value.includes('"') || value.includes("\n"))
+            ) {
+              value = '"' + value.replace(/"/g, '""') + '"';
+            }
+            return value;
+          })
+          .join(";");
+      })
+      .join("\n");
+
+    // PERBAIKAN: Gunakan 'search' bukan 'order_no'
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", `attachment; filename="sow_${search || 'all'}.csv"`);
+
+    // Kirim CSV data
+    res.send(csvHeader + csvData);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Endpoint baru khusus untuk JSON
+exports.getDataJSON = async (req, res) => {
+  try {
+    const { search } = req.query;
+    
+    let query = 'SELECT * FROM sow WHERE 1=1';
+    const params = [];
+
+    if (search) {
+      query += ` AND (order_no ILIKE $1 OR ssbr_id ILIKE $1)`;
+      params.push(`%${search}%`);
+    }
+
+    query += ' ORDER BY operation_no ASC';
+
+    const result = await db.query(query, params);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Data not found' });
+    }
+
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.getbymesinid = async (req, res) => {
   try {
     const { order } = req.params;
@@ -232,6 +316,111 @@ exports.updateexcel = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+//============UPSERT EXCEL=============
+// UPSERT berdasarkan ssbr_id dan operation_no
+exports.upsert = async (req, res) => {
+  try {
+    const { ssbr_id, operation_no } = req.params;
+    const { 
+      order_no,
+      part_number, 
+      part_name,
+      model,
+      customer,
+      location,
+      wct_group,
+      workcenter,
+      operationtext,
+      workcenterdescription,
+      planhours,
+      systemstatus,
+      confirmation
+    } = req.body;
+
+    // Cek apakah data sudah ada
+    const checkQuery = `
+      SELECT idsow FROM sow 
+      WHERE ssbr_id = $1 AND operation_no = $2
+    `;
+    const existing = await db.query(checkQuery, [ssbr_id, operation_no]);
+
+    let result;
+    
+    if (existing.rows.length > 0) {
+      // UPDATE jika sudah ada
+      const updateQuery = `
+        UPDATE sow SET 
+          order_no = $1,
+          part_number = $2,
+          part_name = $3,
+          model = $4,
+          customer = $5,
+          location = $6,
+          wct_group = $7,
+          workcenter = $8,
+          operationtext = $9,
+          workcenterdescription = $10,
+          planhours = $11,
+          systemstatus = $12,
+          confirmation = $13
+        WHERE ssbr_id = $14 AND operation_no = $15
+        RETURNING *
+      `;
+      
+      result = await db.query(updateQuery, [
+        order_no,
+        part_number,
+        part_name,
+        model,
+        customer,
+        location,
+        wct_group,
+        workcenter,
+        operationtext,
+        workcenterdescription,
+        planhours,
+        systemstatus,
+        confirmation,
+        ssbr_id,
+        operation_no
+      ]);
+    } else {
+      // CREATE jika belum ada
+      const insertQuery = `
+        INSERT INTO sow (
+          ssbr_id, operation_no, order_no, part_number, part_name, 
+          model, customer, location, wct_group, workcenter, 
+          operationtext, workcenterdescription, planhours, systemstatus, confirmation
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        RETURNING *
+      `;
+      
+      result = await db.query(insertQuery, [
+        ssbr_id,
+        operation_no,
+        order_no,
+        part_number,
+        part_name,
+        model,
+        customer,
+        location,
+        wct_group,
+        workcenter,
+        operationtext,
+        workcenterdescription,
+        planhours,
+        systemstatus,
+        confirmation
+      ]);
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Upsert error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 exports.getcsv = async (req, res) => {
   try {

@@ -53,7 +53,7 @@ async function postdata() {
     console.log("Timesheet:", updated);
     // ✅ Pop-up sukses
     alert("TIMESHEET berhasil!✅");
-    window.location.href = "menutimesheet.html";
+    window.location.href = "menutimesheet";
 
     const updateds = await postRes.json();
     console.log("Update sukses:", updateds);

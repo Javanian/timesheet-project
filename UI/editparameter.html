@@ -13,6 +13,7 @@
   <!-- LEFT side -->
   <div class="container-wrapper" style="overflow:hidden;flex-direction: column;max-width:50%">
     <div class="containerjudul" style="overflow:visible;">
+      <button id="btn" onclick="gotoinput()">Back</button>
       <button id="btnBySN">BySN</button>
       <button id="btnByWCT">ByWCT</button>
     </div>
@@ -49,6 +50,7 @@
 </div>
 
 <script>
+  function gotoinput() {window.location.href = "processcontrol_form";};
 const datakaryawan = JSON.parse(sessionStorage.getItem("datakaryawan"));
 const processTableBody = document.querySelector('#processControlTable tbody');
 const processItemForm = document.getElementById('processItemForm');

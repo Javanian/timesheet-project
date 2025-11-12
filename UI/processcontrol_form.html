@@ -40,7 +40,7 @@
     </div>
     <div class="container" style="overflow:auto;height: 100%;">
     <form id="parameterForm"></form>
-    <button id="btnSubmit" style="margin-top:10px;">Submit Data</button>
+    <button id="btnSubmit" style="margin-top:10px;">Submits Data</button>
     </div>
   </div>
 </div>
@@ -56,7 +56,7 @@ const timesheetBody = document.querySelector('#timesheetTable tbody');
 const parameterForm = document.getElementById('parameterForm');
 
 async function loadCategories() {
-  const res = await fetch('/process-category');
+  const res = await fetch(`/process-category`);
   const data = await res.json();
   categorySelect.innerHTML = data.map(c =>
     `<option value="${c.id_process}">${c.process_name}</option>`).join('');

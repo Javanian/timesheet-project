@@ -1,3 +1,5 @@
+const { Parser } = require('json2csv');
+const ExcelJS = require('exceljs');
 const db = require("../db");
 const plantssb = "5153";
 // GET all
@@ -375,6 +377,129 @@ exports.remove = async (req, res) => {
     await db.query("DELETE FROM timesheet_transaction WHERE id = $1", [id]);
     res.json({ message: "Deleted successfully" });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+//============================= CSV GEN =========================
+const ALLOWED_DATE_FIELDS = ['longdate_checkin', 'longdate_checkout'];
+
+function normalizeDateStr(d) {
+  if (!d) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return null;
+  return d;
+}
+
+exports.getcsv = async (req, res) => {
+  try {
+    const { start, end, field } = req.query;
+
+    // pilih field yang valid (default longdate_checkout)
+    const dateField = ALLOWED_DATE_FIELDS.includes(field) ? field : 'longdate_checkout';
+    const startDate = normalizeDateStr(start);
+    const endDate   = normalizeDateStr(end);
+
+    const params = [];
+    let where = '';
+    if (startDate && endDate) {
+      // DATE(field) hanya ambil bagian tanggal
+      where = `WHERE DATE(${dateField}) BETWEEN $1 AND $2`;
+      params.push(startDate, endDate);
+    }
+
+    const result = await db.query(
+      `
+      SELECT *
+      FROM timesheet_transaction
+      ${where}
+      ORDER BY tsnumber DESC
+      `,
+      params
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).send('No data found');
+    }
+
+    const fields = Object.keys(result.rows[0]);
+    const parser = new Parser({ fields, delimiter: ';' });
+    const csv = parser.parse(result.rows);
+
+    res.header('Content-Type', 'text/csv');
+    const fname = startDate && endDate
+      ? `timesheet_${dateField}_${startDate}_to_${endDate}.csv`
+      : 'timesheet_transaction.csv';
+    res.attachment(fname);
+    res.send(csv);
+
+  } catch (err) {
+    console.error('CSV export error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getxlsx = async (req, res) => {
+  try {
+    const { start, end, field } = req.query;
+
+    const dateField = ALLOWED_DATE_FIELDS.includes(field) ? field : 'longdate_checkout';
+    const startDate = normalizeDateStr(start);
+    const endDate   = normalizeDateStr(end);
+
+    const params = [];
+    let where = '';
+    if (startDate && endDate) {
+      where = `WHERE DATE(${dateField}) BETWEEN $1 AND $2`;
+      params.push(startDate, endDate);
+    }
+
+    const result = await db.query(
+      `
+      SELECT *
+      FROM timesheet_transaction
+      ${where}
+      ORDER BY tsnumber DESC
+      `,
+      params
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).send('No data found');
+    }
+
+    // === ExcelJS ===
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Timesheet');
+    const fields = Object.keys(result.rows[0]);
+
+    ws.addRow(fields);
+    for (const row of result.rows) {
+      ws.addRow(fields.map(f => row[f]));
+    }
+
+    // auto lebar kolom
+    fields.forEach((f, i) => {
+      const col = ws.getColumn(i + 1);
+      let maxLen = f.length;
+      col.eachCell({ includeEmpty: true }, c => {
+        const v = c.value ? String(c.value) : '';
+        if (v.length > maxLen) maxLen = v.length;
+      });
+      col.width = Math.min(Math.max(maxLen + 2, 10), 60);
+    });
+
+    const fname = startDate && endDate
+      ? `timesheet_${dateField}_${startDate}_to_${endDate}.xlsx`
+      : 'timesheet_transaction.xlsx';
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${fname}"`);
+    await wb.xlsx.write(res);
+    res.end();
+
+  } catch (err) {
+    console.error('XLSX export error:', err);
     res.status(500).json({ error: err.message });
   }
 };

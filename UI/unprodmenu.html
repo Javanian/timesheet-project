@@ -15,10 +15,10 @@
     <div class="container-title-horizontal"
         style="padding: 0px; overflow:hidden;display:flex;align-items:center;justify-content:space-between">
         <div class="button-utama full" onclick="backcuy()" style="max-width: 100px;border-radius: 12px;">
-            <img src="svg-white/arrow-left-circle.svg">
+            <img src="css/svg-white/arrow-left-circle.svg">
         </div>
         <div class="button-utama full" style="max-width: 100px;border-radius: 12px;">
-          <img src="svg-white/repeat.svg"></div>
+          <img src="css/svg-white/repeat.svg"></div>
     </div>
     <div class="button-grid">
     <button onclick="id_unprod('1510', this)">BRIEFING</button>
@@ -42,7 +42,7 @@
         </div>
     <script>
         function backcuy() {
-  window.location.href = "index.html";
+  window.location.href = "index";
 }
         async function id_unprod(id, btn) {
             try {
@@ -86,7 +86,8 @@
                 });
 
                 if (!unprodRes.ok) throw new Error("Gagal input unprod");
-
+                 alert("TIMESHEET berhasil!✅");
+                    window.location.href = "menutimesheet";
                 
 
             } catch (err) {
