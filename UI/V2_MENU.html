@@ -1,59 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Main Menu</title>
-  <link rel="stylesheet" href="css/main.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Production Dashboard</title>
+  <link href="css/output.css" rel="stylesheet">
 </head>
-<body>
-  <div class="page-container">
 
-    <!-- Header -->
-    <header class="app-header flex-between">
-      <button class="btn btn-secondary small" onclick="goHome()">Back</button>
-      <div class="switch-wrapper">
-        <label class="switch">
-          <input type="checkbox" id="myswitch">
-          <span class="slider"></span>
-        </label>
-        <span id="switchLabel">Single</span>
+<body class="bg-gray-100 min-h-screen">
+
+  <div class="max-w-6xl mx-auto p-4">
+
+    <!-- HEADER -->
+    <header class="bg-white rounded-xl p-4 shadow-sm mb-4 flex items-center justify-between">
+      
+      <!-- Left -->
+      <div class="flex items-center gap-3">
+        <button onclick="goHome()" 
+          class="bg-gray-200 text-gray-800 px-3 py-2 rounded-lg text-sm font-semibold">
+          ← Back
+        </button>
+
+        
       </div>
-      <button class="btn btn-secondary small">Refresh</button>
+
+      <!-- Right -->
+      <button class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+        Refresh
+      </button>
     </header>
 
-    <!-- Main content -->
-    <section class="main-content">
-      <!-- Info user & order -->
-      <div class="info-box">
-        <div class="row"><span class="label">Nama</span><span class="value" id="namaku">-</span></div>
-        <div class="row"><span class="label">SN Karyawan</span><span class="value" id="snku">-</span></div>
-        <div class="row"><span class="label">Work Center</span><span class="value" id="wctku">-</span></div>
-        <div class="row"><span class="label">Prod Order</span><span class="value" id="orderku">-</span></div>
-        <div class="row"><span class="label">Activity</span><span class="value" id="activityku">-</span></div>
+    <!-- MAIN GRID -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-        <!-- Bottom actions inside info box -->
-        <div class="info-actions">
-          <button class="btn btn-warning small2">Rework</button>
-          <button class="btn btn-success small2" onclick="finish()">Finish</button>
+      <!-- LEFT PANEL -->
+      <div class="bg-white p-4 rounded-xl shadow-sm flex flex-col">
+
+        <h2 class="text-lg font-bold text-gray-800 mb-3">Current Session</h2>
+
+        <!-- INFO BOX -->
+        <div class="flex flex-col gap-3 mb-4">
+
+          <div class="flex justify-between border-b pb-2">
+            <span class="text-sm text-gray-500 font-semibold">Nama</span>
+            <span class="text-sm font-semibold text-gray-900" id="namaku">-</span>
+          </div>
+
+          <div class="flex justify-between border-b pb-2">
+            <span class="text-sm text-gray-500 font-semibold">SN Karyawan</span>
+            <span class="text-sm font-semibold text-gray-900" id="snku">-</span>
+          </div>
+
+          <div class="flex justify-between border-b pb-2">
+            <span class="text-sm text-gray-500 font-semibold">Work Center</span>
+            <span class="text-sm font-semibold text-gray-900" id="wctku">-</span>
+          </div>
+
+          <div class="flex justify-between border-b pb-2">
+            <span class="text-sm text-gray-500 font-semibold">Prod Order</span>
+            <span class="text-sm font-semibold text-gray-900" id="orderku">-</span>
+          </div>
+
+          <div class="flex justify-between">
+            <span class="text-sm text-gray-500 font-semibold">Activity</span>
+            <span class="text-sm font-semibold text-gray-900" id="activityku">-</span>
+          </div>
+
         </div>
+
+        <!-- QUICK ACTIONS -->
+        <div class="grid grid-cols-2 gap-3 mt-auto">
+
+          <button 
+            class="bg-orange-500 text-white rounded-lg p-4 flex flex-col justify-center items-center gap-1 h-[50px]">
+            <img src="css/svg-white/stop-circle.svg" class="w-5 h-5">
+            <span class="text-sm font-semibold">Rework</span>
+          </button>
+
+          <button onclick="finish()"
+            class="bg-green-600 text-white rounded-lg p-4 flex flex-col justify-center items-center gap-1 h-[50px]">
+            <img src="css/svg-white/check.svg" class="w-5 h-5">
+            <span class="text-sm font-semibold">Finish</span>
+          </button>
+
+        </div>
+
       </div>
 
-      <!-- Action buttons (side of info box) -->
-      <div class="action-buttons">
-        <button class="btn btn-primary" onclick="postdata()">Start</button>
-        <button class="btn btn-primary" onclick="gotojob()">Select Job</button>
-        <button class="btn btn-primary" onclick="gotomesin()">Select Machine</button>
-        <button class="btn btn-primary">Process Control</button>
-        <button class="btn btn-primary" onclick="gotots()">View Timesheet</button>
-        <button class="btn btn-primary">Consumable & Tools</button>
+      <!-- RIGHT PANEL (TILES) -->
+      <div class="grid grid-cols-2 sm:grid-cols-2 gap-4">
+
+        <button onclick="postdata()" 
+          class="bg-blue-600 text-white rounded-lg p-4 flex flex-col items-center justify-center gap-2 ">
+          <img src="css/svg-white/play-circle.svg" class="w-5 h-5">
+          <span class="text-sm font-semibold">Start</span>
+        </button>
+
+        <button onclick="gotojob()"
+          class="bg-blue-600 text-white rounded-lg p-4 flex flex-col items-center justify-center gap-2 ">
+          <img src="css/svg-white/list.svg" class="w-5 h-5">
+          <span class="text-sm font-semibold">Select Job</span>
+        </button>
+
+        <button onclick="gotomesin()"
+          class="bg-blue-600 text-white rounded-lg p-4 flex flex-col items-center justify-center gap-2 ">
+          <img src="css/svg-white/monitor.svg" class="w-5 h-5">
+          <span class="text-sm font-semibold">Select Machine</span>
+        </button>
+
+        <button onclick="gotoparameter()"
+          class="bg-blue-600 text-white rounded-lg p-4 flex flex-col items-center justify-center gap-2 ">
+          <img src="css/svg-white/settings.svg" class="w-5 h-5">
+          <span class="text-sm font-semibold">Process Control</span>
+        </button>
+
+        <button onclick="gotots()"
+          class="bg-blue-600 text-white rounded-lg p-4 flex flex-col items-center justify-center gap-2 ">
+          <img src="css/svg-white/clock.svg" class="w-5 h-5">
+          <span class="text-sm font-semibold">View Timesheet</span>
+        </button>
+
+        <button 
+          class="bg-blue-600 text-white rounded-lg p-4 flex flex-col items-center justify-center gap-2 ">
+          <img src="css/svg-white/tool.svg" class="w-5 h-5">
+          <span class="text-sm font-semibold">Consumable</span>
+        </button>
+
       </div>
-    </section>
+
+    </div>
   </div>
 
-  <!-- Script -->
+  <!-- Scripts -->
   <script src="js/previewdata.js"></script>
   <script src="js/script.js"></script>
   <script src="js/postdata.js"></script>
+
 </body>
 </html>

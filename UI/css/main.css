@@ -26,11 +26,11 @@ html, body {
   align-items: center;
   background: linear-gradient(135deg, #007bff, #0056b3); /* biru modern */
   color: #fff;
-  padding: 12px 20px;
+  padding: 5px 5px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   font-weight: 600;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
 }
 
 .app-header h2, 
@@ -85,7 +85,7 @@ html, body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   padding: 14px 16px;
   font-size: 14px;
   font-weight: 600;
@@ -102,6 +102,7 @@ html, body {
 .btn-primary {
   background: linear-gradient(to bottom, #4da3ff, #0069d9);
   color: #fff;
+  flex-direction: column;
   box-shadow: 0 4px 0 #004a99, 0 6px 12px rgba(0,0,0,0.2);
 }
 .btn-primary:active {
@@ -170,15 +171,17 @@ html, body {
 
 
 .btn.small {
-  padding: 6px 12px;
+  padding: 10px 12px;
   font-size: 14px;
-  height: 100%;
+  width: 100px;
+  height: 50px;
 }
 .btn.small2 {
   padding: 6px 12px;
   font-size: 14px;
+  flex-direction: column;
   height: 100%;
-  width: 100%;
+  width: 150px;
 }
 
 /* ===== SWITCH ===== */
@@ -221,79 +224,77 @@ input:checked + .slider:before {
 /* ===== INFO BOX (Mainmenu) ===== */
 .main-content {
   display: flex;
-  gap: 15px;
-  flex: 1;
+  flex-direction: column; /* default: column */
+  gap: 12px;
+  height: 100%;
+}
+
+/* Jika layar lebar → berubah jadi row */
+@media (min-width: 768px) {
+  .main-content {
+    flex-direction: row;
+  }
+}
+
+
+.info-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* jarak antar row */
+  padding: 15px;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  width: 100%;
+  justify-content: space-between;
+  height: 100%;
   
 }
 
-.info-box {
-  flex: 1;
-  background: linear-gradient(135deg, #ffffff, #f9f9fb);
-  border-radius: 16px;
-  padding: 1px;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  border: 1px solid #e5e7eb;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  justify-content: space-between;
-}
-
-.info-box:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-}
-
-/* Row style */
-.info-box .row {
+/* Row */
+.info-row {
   display: flex;
   align-items: center;
-  font-size: 14px;
-  padding: 8px 0;
-  border-bottom: 1px solid #eee;
-  gap: 1px;
-  padding: 7px;
-}
-.info-box .row:last-child {
-  border-bottom: none;
+  gap: 10px; /* jarak label-value */
 }
 
-/* Label style */
-.info-box .label {
-  min-width: 100px;
-  font-weight: 600;
-  color: #374151;
-}
-
-/* Value style */
-.info-box .value {
+/* Label */
+.info-row .label {
   flex: 1;
-  color: #111827;
-  font-weight: 500;
-  background: #ebedf1;
-  padding: 6px 10px;
-  border-radius: 6px;
+  font-weight: 600;
+  color: #333;
 }
+
+/* Value */
+.info-row .value {
+  flex: 2;
+  background: #f1f3f6;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
 
 
 
 .info-actions {
   display: flex;
   justify-content: space-between;
-  gap: 15px;
-  margin-top: 5px;
-  height: 100%;
-  max-height: 100px;
-  align-items: center;
-}
-/* Action buttons (right side of info box) */
-.action-buttons {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 10px;
+  margin-top: 10px;
+  
 }
+
+/* Perbaiki action-buttons */
+.action-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 kolom */
+  gap: 10px;
+  width: 100%;
+  min-height: 50%;
+  
+}
+
 
 
 
@@ -323,7 +324,7 @@ input:checked + .slider:before {
   border-radius: 6px 6px 0 0;
 }
 .gallery-header .cell {
-  text-align: left;
+  text-align: center;
   font-size: 14px;
 }
 /* Container scroll untuk job list */
@@ -341,13 +342,16 @@ input:checked + .slider:before {
   display: grid;
   grid-template-columns: 1fr 2fr 0.8fr 0.5fr 1fr;
   gap: 8px;
-  padding: 8px;
+  padding: 1px;
   border: 1px solid #ddd;
   border-radius: 6px;
   margin-bottom: 6px;
   background: #fff;
   cursor: pointer;
   transition: background 0.2s;
+  font-size: medium;
+  align-items: center;
+  min-height: 50px;
 }
 .gallery .item:hover { background: #f5f9ff; }
 .gallery .item.selected { background: #d0e8ff; }
@@ -372,7 +376,31 @@ input:checked + .slider:before {
   width: 100%;
   height: auto;
 }
+.textbox {
+  display: flex;
+  justify-content: center;       /* teks di tengah horizontal */
+  align-items: center;           /* teks di tengah vertical */
+  padding: 8px 10px;
+  
+  background: #ffffff;           /* putih bersih */
+  border: 1px solid #d1d5db;     /* abu soft */
+  border-radius: 8px;            /* modern rounded */
+  
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  text-align: center;            /* biar multiline tetap rapi */
 
+  flex: 1;                       /* fleksibel sesuai column */
+  min-height: 45px;
+
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08); /* mild shadow */
+}
+.textbox.hrs {
+
+  min-width: 70px;
+
+}
 
 /* ===== TIMESHEET TABLE ===== */
 .timesheet-header {

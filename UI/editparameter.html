@@ -210,8 +210,8 @@ async function updateValidation(status) {
 
   alert(`Process control ${status}`);
   // refresh table to reflect validation status
-  processTableBody.querySelector(`tr.selected td:nth-child(5)`).textContent = status;
-  processTableBody.querySelector(`tr.selected td:nth-child(6)`).textContent = datakaryawan.full_name;
+  processTableBody.querySelector(`tr.selected td:nth-child(6)`).textContent = status;
+  processTableBody.querySelector(`tr.selected td:nth-child(7)`).textContent = datakaryawan.full_name;
 }
 
 // initial load
