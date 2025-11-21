@@ -69,7 +69,7 @@ const data = await response.json();
       const actBox = document.createElement("div");
       actBox.classList.add("textbox", "act");
       actBox.textContent = rowData.operationtext;
-      
+        
       const wctBox = document.createElement("div");
       wctBox.classList.add("textbox", "wct");
       wctBox.textContent = rowData.workcenter;
@@ -151,7 +151,7 @@ const data = await response.json();
       const actBox = document.createElement("div");
       actBox.classList.add("textbox", "act");
       actBox.textContent = rowData.operationtext;
-      
+
       const wctBox = document.createElement("div");
       wctBox.classList.add("textbox", "wct");
       wctBox.textContent = rowData.workcenter;
