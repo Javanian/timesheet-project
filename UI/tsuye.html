@@ -738,55 +738,210 @@
       processData();
     }
 
-    // Validate single record
-    async function validateSingle(tsnumber) {
-      try {
-        await fetch('/timesheet/validation', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tsnumbers: [tsnumber] })
-        });
-        
-        // Reload data to reflect changes
-        const startDate = document.getElementById('startDate').value;
-        const endDate = document.getElementById('endDate').value;
-        loadTimesheets(
-          startDate ? `${startDate} 00:00:00` : '',
-          endDate ? `${endDate} 23:59:59` : ''
-        );
-        
-      } catch (err) {
-        console.error('Validation error:', err);
-        alert('Failed to validate record');
+   // ✅ PASTE CODE BARU MULAI DARI SINI
+
+// Helper function untuk update UI tanpa reload
+function updateUIAfterValidation(tsnumbers) {
+  tsnumbers.forEach(tsnumber => {
+    // 1. Update data di memory
+    const item = allData.find(d => d.tsnumber === tsnumber);
+    if (item) {
+      item.validation_date = new Date().toISOString(); // Set validation date
+      item.tsstatus = 'V'; // Validated
+    }
+    
+    // 2. Update row di UI
+    const row = document.querySelector(`tr.child-row[data-tsnumber="${tsnumber}"]`);
+    if (row) {
+      // Update class row
+      row.classList.add('validated');
+      
+      // Update status badge
+      const statusTd = row.querySelector('td:nth-child(11)'); // kolom Status
+      if (statusTd) {
+        statusTd.innerHTML = '<span class="status-badge status-validated">✓ Validated</span>';
       }
+      
+      // Update tombol validate
+      const validateBtn = row.querySelector('.validate-btn');
+      if (validateBtn) {
+        validateBtn.disabled = true;
+        validateBtn.textContent = '✓';
+        validateBtn.style.opacity = '0.5';
+      }
+      
+      // Remove click event (karena sudah validated)
+      row.style.cursor = 'default';
+      row.onclick = null;
+    }
+  });
+  
+  // 3. Update summary parent row (recalculate jika perlu)
+  updateGroupSummaries(tsnumbers);
+}
+
+// Update group summaries setelah validasi
+function updateGroupSummaries(tsnumbers) {
+  const affectedSerials = new Set();
+  
+  // Cari serial number yang terpengaruh
+  tsnumbers.forEach(tsnumber => {
+    const item = allData.find(d => d.tsnumber === tsnumber);
+    if (item) {
+      affectedSerials.add(item.serialnumber);
+    }
+  });
+  
+  // Update tiap group yang terpengaruh
+  affectedSerials.forEach(serial => {
+    const groupData = groupedData[serial];
+    if (!groupData) return;
+    
+    const allValidated = groupData.every(item => item.validation_date);
+    const parentRow = document.querySelector(`tr.parent-row[data-serial="${serial}"]`);
+    const groupBtn = parentRow?.querySelector('.validate-btn');
+    
+    if (groupBtn && allValidated) {
+      groupBtn.disabled = true;
+      groupBtn.textContent = '✓ All Validated';
+      groupBtn.style.opacity = '0.5';
+    }
+  });
+}
+
+// Validate single record dengan loading state
+// Validate single record dengan loading state
+async function validateSingle(tsnumber) {
+  const row = document.querySelector(`tr.child-row[data-tsnumber="${tsnumber}"]`);
+  const btn = row?.querySelector('.validate-btn');
+  
+  if (!btn) return;
+  
+  // ✅ VALIDASI: Cek apakah checkout sudah diisi
+  const item = allData.find(d => d.tsnumber === tsnumber);
+  if (!item) return;
+  
+  if (!item.longdate_checkout || !item.date_checkout || !item.hour_checkout) {
+    alert('⚠️ Cannot validate: Checkout time is empty!\n\nPlease complete the checkout time first.');
+    return;
+  }
+  
+  const originalText = btn.textContent;
+  
+  try {
+    // Show loading
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner" style="width: 12px; height: 12px; margin: 0;"></div>';
+    
+    // Kirim request ke server
+    await fetch('/timesheet/validation', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tsnumbers: [tsnumber] })
+    });
+    
+    // Success - update UI
+    updateUIAfterValidation([tsnumber]);
+    
+  } catch (err) {
+    console.error('Validation error:', err);
+    alert('Failed to validate record');
+    
+    // Rollback
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+// Validate entire group dengan loading state
+async function validateGroup(serial) {
+  const parentRow = document.querySelector(`tr.parent-row[data-serial="${serial}"]`);
+  const btn = parentRow?.querySelector('.validate-btn');
+  
+  if (!btn) return;
+  
+  const groupData = groupedData[serial];
+  if (!groupData) return;
+  
+  // ✅ Filter: Hanya ambil yang checkout sudah diisi DAN belum validated
+  const validatableItems = groupData.filter(item => 
+    (item.longdate_checkout && item.date_checkout && item.hour_checkout) && // checkout complete
+    !item.validation_date // belum validated
+  );
+  
+  if (validatableItems.length === 0) {
+    alert('⚠️ No records to validate!\n\nAll records are either incomplete or already validated.');
+    return;
+  }
+  
+  // Info berapa yang akan di-validate
+  const incompleteCount = groupData.filter(item => 
+    !item.longdate_checkout || !item.date_checkout || !item.hour_checkout
+  ).length;
+  
+  const alreadyValidatedCount = groupData.filter(item => item.validation_date).length;
+  
+  let message = `Ready to validate ${validatableItems.length} record(s)`;
+  if (incompleteCount > 0) {
+    message += `\n\n⚠️ ${incompleteCount} record(s) will be skipped (incomplete checkout)`;
+  }
+  if (alreadyValidatedCount > 0) {
+    message += `\n✓ ${alreadyValidatedCount} record(s) already validated`;
+  }
+  
+  if (!confirm(message + '\n\nContinue?')) {
+    return;
+  }
+  
+  const originalText = btn.textContent;
+  
+  try {
+    const tsnumbers = validatableItems.map(item => item.tsnumber);
+    
+    // Show loading
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner" style="width: 12px; height: 12px; margin: 0;"></div>';
+    
+    // ✅ Kirim request ke server dengan pengecekan response
+    const response = await fetch('/timesheet/validation', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tsnumbers })
+    });
+
+    // ✅ Cek apakah request berhasil
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(error.error || `HTTP ${response.status}`);
     }
 
-    // Validate entire group
-    async function validateGroup(serial) {
-      try {
-        const groupData = groupedData[serial];
-        const tsnumbers = groupData.map(item => item.tsnumber);
-        
-        await fetch('/timesheet/validation', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tsnumbers })
-        });
-        
-        // Reload data to reflect changes
-        const startDate = document.getElementById('startDate').value;
-        const endDate = document.getElementById('endDate').value;
-        loadTimesheets(
-          startDate ? `${startDate} 00:00:00` : '',
-          endDate ? `${endDate} 23:59:59` : ''
-        );
-        
-      } catch (err) {
-        console.error('Group validation error:', err);
-        alert('Failed to validate group');
-      }
-    }
-
+    // ✅ Parse response untuk konfirmasi
+    const result = await response.json();
+    console.log('Validation success:', result);
+    
+    // Success - update UI
+    updateUIAfterValidation(tsnumbers);
+    
+    // ✅ PERBAIKAN: Reset button setelah sukses
+    btn.textContent = '✓ Done';
+    btn.style.background = '#10b981'; // hijau
+    
+    // ✅ Optional: Kembalikan ke state normal setelah 2 detik
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.style.background = '';
+      btn.disabled = false;
+    }, 2000);
+    
+  } catch (err) {
+    console.error('Group validation error:', err);
+    alert(`❌ Failed to validate group: ${err.message}`);
+    
+    // Rollback
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
     // Event listeners
     document.getElementById('searchInput').addEventListener('input', applySearchFilter);
 
