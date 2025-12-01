@@ -316,12 +316,14 @@ input:checked + .slider:before {
 /* ===== GALLERY HEADER ===== */
 .gallery-header {
   display: grid;
-  grid-template-columns: 1fr 2fr 0.8fr 0.5fr 1fr;
+  grid-template-columns: 1fr 2fr 0.5fr 0.5fr 1fr;
   font-weight: bold;
   padding: 8px;
+  gap: 8px;
   border-bottom: 2px solid #ddd;
   background: #f1f1f1;
   border-radius: 6px 6px 0 0;
+    box-sizing: border-box;
 }
 .gallery-header .cell {
   text-align: center;
@@ -340,9 +342,10 @@ input:checked + .slider:before {
 /* ===== GALLERY ITEMS ===== */
 .gallery .item {
   display: grid;
-  grid-template-columns: 1fr 2fr 0.8fr 0.5fr 1fr;
+    box-sizing: border-box;
+  grid-template-columns: 1fr 2fr 0.5fr 0.5fr 1fr;
   gap: 8px;
-  padding: 1px;
+  padding: 8px;
   border: 1px solid #ddd;
   border-radius: 6px;
   margin-bottom: 6px;
@@ -352,7 +355,7 @@ input:checked + .slider:before {
   font-size: medium;
   align-items: center;
   min-height: 50px;
-}
+} 
 .gallery .item:hover { background: #f5f9ff; }
 .gallery .item.selected { background: #d0e8ff; }
 
@@ -376,26 +379,27 @@ input:checked + .slider:before {
   width: 100%;
   height: auto;
 }
+
 .textbox {
+  text-align: center;
+ width: 100%;
   display: flex;
-  justify-content: center;       /* teks di tengah horizontal */
-  align-items: center;           /* teks di tengah vertical */
+  justify-content: center;      
+  align-items: center;           
   padding: 8px 10px;
-  
-  background: #ffffff;           /* putih bersih */
-  border: 1px solid #d1d5db;     /* abu soft */
-  border-radius: 8px;            /* modern rounded */
-  
-  font-size: 15px;
+  background: #ffffff;          
+  border: 1px solid #d1d5db;     
+  border-radius: 8px;            
+  font-size: 12px;
   font-weight: 500;
   color: #333;
-  text-align: center;            /* biar multiline tetap rapi */
-
-  flex: 1;                       /* fleksibel sesuai column */
+  text-align: center;            
+  flex: none;                       
   min-height: 45px;
-
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08); /* mild shadow */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08); 
+   
 }
+
 .textbox.hrs {
 
   min-width: 70px;
@@ -418,7 +422,7 @@ input:checked + .slider:before {
   text-align: center;
 }
 .timesheet-header .flex-2 {
-  text-align: left;
+  text-align: center;
 }
 
 /* Timesheet rows */
@@ -432,6 +436,7 @@ input:checked + .slider:before {
   margin-bottom: 6px;
   background: #fff;
   align-items: center;
+  font-size: small;
 }
 .gallery .timesheet-row:hover { background: #f5f9ff; }
 

@@ -12,8 +12,9 @@ router.get("/getexcel", controller.getxlsx);
 router.post("/", controller.create);
 router.put("/validation", controller.bulkValidation);
 router.put("/updateadmin/:id", controller.updateTimesheetadmin);
-router.put("/checkout/:serialnumber", controller.checkout);
+router.put("/checkout", controller.checkout);
 router.put("/checkoutid/", controller.checkoutid);
 router.delete("/:id", controller.remove);
 
 module.exports = router;
+///:serialnumber

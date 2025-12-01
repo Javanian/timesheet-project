@@ -279,6 +279,8 @@ exports.create = async (req, res) => {
  * UPDATE timesheet - checkout by serial number
  */
 exports.checkout = async (req, res) => {
+  console.log("API CHECKOUT KE-TRIGGER");
+  console.log("req.body:", req.body);   // <-- taruh di sini
   try {
     const { datakaryawan } = req.body;
     

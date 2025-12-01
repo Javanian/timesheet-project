@@ -58,7 +58,7 @@
 
                 const serialnumber = datakaryawan.snssb;
                 const checkoutRes = await fetch(
-                    `/timesheet/checkout/${serialnumber}`,
+                    `/timesheet/checkout`,
                     {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
@@ -87,7 +87,7 @@
 
                 if (!unprodRes.ok) throw new Error("Gagal input unprod");
                  alert("TIMESHEET berhasil!✅");
-                    window.location.href = "menutimesheet";
+                    window.location.href = "index";
                 
 
             } catch (err) {

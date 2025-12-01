@@ -1,116 +1,98 @@
+
+
 const switchEl = document.getElementById("myswitch");
 const labelEl = document.getElementById("switchLabel");
 
 switchEl.addEventListener("change", function () {
   if (this.checked) {
-    labelEl.textContent = "Multiple";
+    labelEl.textContent = "Multiple"; // kalau true
   } else {
-    labelEl.textContent = "Single";
+    labelEl.textContent = "Single"; // kalau false
   }
 });
 
 async function postdata() {
-  try {
-    const selectedactivity = JSON.parse(sessionStorage.getItem("selectedactivity"));
+  if (labelEl.textContent === "Single") {
+    const selectedactivity = JSON.parse(
+      sessionStorage.getItem("selectedactivity")
+    );
     const datakaryawan = JSON.parse(sessionStorage.getItem("datakaryawan"));
-    const selectedmesinku = JSON.parse(sessionStorage.getItem("selectedmesinku"));
+    const selectedmesinku = JSON.parse(
+      sessionStorage.getItem("selectedmesinku")
+    );
 
-    if (!selectedactivity || !datakaryawan) {
-      alert("❌ Data tidak lengkap. Silakan pilih activity dan karyawan.");
-      return;
-    }
-
-    if (labelEl.textContent === "Single") {
-      // ✅ CHECKOUT menggunakan endpoint unified (serialnumber)
-      const checkoutRes = await fetch("/timesheet/checkout", {
+    const serialnumber = datakaryawan.sn;
+    const updateRes = await fetch(
+      `/timesheet/checkout/${serialnumber}`,
+      { 
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          serialnumber: datakaryawan.snssb  // ✅ Langsung kirim serialnumber
+          datakaryawan: { sn: datakaryawan.snssb },
         }),
-      });
-
-      if (!checkoutRes.ok) {
-        const error = await checkoutRes.json();
-        console.error("Gagal CHECKOUT:", error);
-        alert(`❌ Checkout gagal: ${error.error || 'Unknown error'}`);
-        return;
       }
+    );
+    const updated = await updateRes.json();
+    console.log("Update sukses:", updated);
 
-      const checkedOut = await checkoutRes.json();
-      console.log("Checkout sukses:", checkedOut);
-
-      // ✅ CREATE timesheet baru
-      const postRes = await fetch("/timesheet/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          production_order: selectedactivity.order,
-          serialnumber: datakaryawan.snssb,
-          full_name: datakaryawan.full_name,
-          operation_no: selectedactivity.operation_no,
-          operation_text: selectedactivity.operationtext,
-          workcentercode: datakaryawan.workcenter,
-          workcenterdescription: datakaryawan.machinename,
-        }),
-      });
-
-      if (!postRes.ok) {
-        const error = await postRes.json();
-        console.error("Gagal POST:", error);
-        alert(`❌ Buat timesheet gagal: ${error.error || 'Unknown error'}`);
-        return;
-      }
-
-      const created = await postRes.json();
-      console.log("Timesheet created:", created);
-
-      alert("✅ TIMESHEET berhasil dibuat!");
-      window.location.href = "menutimesheet";
-
-    } else {
-      // ✅ MODE MULTIPLE - hanya create tanpa checkout
-      const postRes = await fetch("/timesheet/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          production_order: selectedactivity.order,
-          serialnumber: datakaryawan.snssb,
-          full_name: datakaryawan.full_name,
-          operation_no: selectedactivity.operation_no,
-          operation_text: selectedactivity.operationtext,
-          workcentercode: datakaryawan.workcenter,
-          workcenterdescription: datakaryawan.machinename,
-        }),
-      });
-
-      if (!postRes.ok) {
-        const error = await postRes.json();
-        console.error("Gagal POST:", error);
-        alert(`❌ Buat timesheet gagal: ${error.error || 'Unknown error'}`);
-        return;
-      }
-
-      const created = await postRes.json();
-      console.log("Timesheet created:", created);
-
-      alert("✅ TIMESHEET berhasil dibuat!");
-      // Tidak redirect, biarkan user create multiple
+    const postRes = await fetch("/timesheet/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        production_order: selectedactivity.order,
+        serialnumber: datakaryawan.snssb,
+        full_name: datakaryawan.full_name,
+        operation_no: selectedactivity.operation_no,
+        operation_text: selectedactivity.operationtext, // perhatikan underscore
+        workcentercode: datakaryawan.workcenter,
+        workcenterdescription: datakaryawan.machinename,
+      }),
+    });
+    if (!postRes.ok) {
+      console.error("Gagal POST:", postRes.status, postRes.statusText);
+      return; // ⬅️ hentikan, jangan pindah halaman
     }
+    console.log("Timesheet:", updated);
+    // ✅ Pop-up sukses
+    alert("TIMESHEET berhasil!✅");
+    window.location.href = "menutimesheet";
 
-  } catch (err) {
-    console.error("Error postdata:", err);
-    alert(`❌ Terjadi kesalahan: ${err.message}`);
+    const updateds = await postRes.json();
+    console.log("Update sukses:", updateds);
+    //sessionStorage.removeItem("selectedactivity");
+    //window.location.href = "index.html"; // pindah hanya kalau sukses
+  } else {
+    const postRes = await fetch("/timesheet/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        production_order: selectedactivity.order,
+        serialnumber: datakaryawan.snssb,
+        full_name: datakaryawan.full_name,
+        operation_no: selectedactivity.operation_no,
+        operation_text: selectedactivity.operationtext, // perhatikan underscore
+        workcentercode: datakaryawan.workcenter,
+        workcenterdescription: datakaryawan.machinename,
+      }),
+    });
+    if (!postRes.ok) {
+      console.error("Gagal POST:", postRes.status, postRes.statusText);
+      return; // ⬅️ hentikan, jangan pindah halaman
+    }
+    console.log("Timesheet:", updated);
+    // ✅ Pop-up sukses
+    alert("TIMESHEET berhasil!✅");
+
+
+    const updateds = await postRes.json();
+    console.log("Update sukses:", updateds);
+    //sessionStorage.removeItem("selectedactivity");
+    //window.location.href = "index.html"; // pindah hanya kalau sukses
   }
-}
+};
 
 async function finish() {
   const selectedactivity = JSON.parse(sessionStorage.getItem("selectedactivity"));
-
-  if (!selectedactivity) {
-    alert("❌ Tidak ada activity yang dipilih");
-    return;
-  }
 
   try {
     const postRes = await fetch("/sow/finish/", {
@@ -123,24 +105,17 @@ async function finish() {
         },
       }),
     });
-
     if (!postRes.ok) {
-      const error = await postRes.json();
-      throw new Error(error.error || "Gagal update status");
+      throw new Error("Gagal update status");
     }
 
     const updated = await postRes.json();
     console.log("Update sukses:", updated);
-    
-    alert("✅ Update FINISH berhasil!");
-    
-    // Clear UI
+    alert("Update FINISH berhasil! ✅");
     sessionStorage.removeItem("selectedactivity");
     document.getElementById("orderku").innerText = "";
     document.getElementById("activityku").innerText = "";
-
   } catch (err) {
     console.error("Error finish:", err);
-    alert(`❌ ${err.message}`);
   }
 }
