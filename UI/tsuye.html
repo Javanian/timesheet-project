@@ -472,40 +472,64 @@
     let expandedGroups = new Set();
 
     // Load data from API
-    async function loadTimesheets(startDate = '', endDate = '') {
-      try {
-        document.getElementById('tableBody').innerHTML = `
-          <tr>
-            <td colspan="12" class="loading">
-              <div class="spinner"></div>
-              Loading timesheet data...
-            </td>
-          </tr>
-        `;
+async function loadTimesheets(startDate = '', endDate = '') {
+  try {
+    document.getElementById('tableBody').innerHTML = `
+      <tr>
+        <td colspan="12" class="loading">
+          <div class="spinner"></div>
+          Loading timesheet data...
+        </td>
+      </tr>
+    `;
 
-        let url = '/timesheet/';
-        if (startDate && endDate) {
-          url = `/timesheet/search?field=longdate_checkin&start=${startDate}&end=${endDate}`;
-        }
-        
-        const res = await fetch(url);
-        const data = await res.json();
-        
-        allData = data;
-        filteredData = data;
-        processData();
-        
-      } catch (err) {
-        console.error('Error loading timesheets:', err);
-        document.getElementById('tableBody').innerHTML = `
-          <tr>
-            <td colspan="12" class="no-data">
-              ❌ Failed to load timesheet data. Please try again.
-            </td>
-          </tr>
-        `;
-      }
+    let url = '/timesheet/';
+    if (startDate && endDate) {
+      url = `/timesheet/search?field=longdate_checkin&start=${startDate}&end=${endDate}`;
     }
+    
+    console.log('🔵 Fetching from:', url);
+    
+    const res = await fetch(url);
+    const responseData = await res.json();
+    
+    console.log('📦 Response data:', responseData);
+    console.log('📦 Type:', typeof responseData);
+    console.log('📦 Is Array:', Array.isArray(responseData));
+    
+    // ✅ Handle berbagai format response
+    let data;
+    if (Array.isArray(responseData)) {
+      // Format langsung array
+      data = responseData;
+    } else if (responseData.data && Array.isArray(responseData.data)) {
+      // Format: { success: true, data: [...], pagination: {...} }
+      data = responseData.data;
+    } else if (responseData.rows && Array.isArray(responseData.rows)) {
+      // Format: { rows: [...] }
+      data = responseData.rows;
+    } else {
+      console.error('❌ Unexpected response format:', responseData);
+      throw new Error('Invalid response format from server');
+    }
+    
+    console.log('✅ Processed data array length:', data.length);
+    
+    allData = data;
+    filteredData = data;
+    processData();
+    
+  } catch (err) {
+    console.error('💥 Error loading timesheets:', err);
+    document.getElementById('tableBody').innerHTML = `
+      <tr>
+        <td colspan="12" class="no-data">
+          ❌ Failed to load timesheet data: ${err.message}
+        </td>
+      </tr>
+    `;
+  }
+}
 
     // Group data by serial number
     function groupBySerial(data) {
@@ -738,7 +762,7 @@
       processData();
     }
 
-   // ✅ PASTE CODE BARU MULAI DARI SINI
+ 
 
 // Helper function untuk update UI tanpa reload
 function updateUIAfterValidation(tsnumbers) {
