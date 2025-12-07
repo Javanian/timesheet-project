@@ -320,107 +320,253 @@ exports.updateexcel = async (req, res) => {
 // UPSERT berdasarkan ssbr_id dan operation_no
 exports.upsert = async (req, res) => {
   try {
-    const { ssbr_id, operation_no } = req.params;
+    console.log("=== UPSERT START ===");
+    console.log("Body received:", JSON.stringify(req.body, null, 2));
+    
     const { 
+      ssbr_id,
       order_no,
-      part_number, 
-      part_name,
-      model,
       customer,
       location,
-      wct_group,
-      workcenter,
-      operationtext,
-      workcenterdescription,
-      planhours,
-      systemstatus,
-      confirmation
+      part_name,
+      model,
+      part_number,
+      created_by,
+      type,
+      group,
+      category,
+      operations
     } = req.body;
 
-    // Cek apakah data sudah ada
-    const checkQuery = `
-      SELECT idsow FROM sow 
-      WHERE ssbr_id = $1 AND operation_no = $2
-    `;
-    const existing = await db.query(checkQuery, [ssbr_id, operation_no]);
-
-    let result;
-    
-    if (existing.rows.length > 0) {
-      // UPDATE jika sudah ada
-      const updateQuery = `
-        UPDATE sow SET 
-          order_no = $1,
-          part_number = $2,
-          part_name = $3,
-          model = $4,
-          customer = $5,
-          location = $6,
-          wct_group = $7,
-          workcenter = $8,
-          operationtext = $9,
-          workcenterdescription = $10,
-          planhours = $11,
-          systemstatus = $12,
-          confirmation = $13
-        WHERE ssbr_id = $14 AND operation_no = $15
-        RETURNING *
-      `;
-      
-      result = await db.query(updateQuery, [
-        order_no,
-        part_number,
-        part_name,
-        model,
-        customer,
-        location,
-        wct_group,
-        workcenter,
-        operationtext,
-        workcenterdescription,
-        planhours,
-        systemstatus,
-        confirmation,
-        ssbr_id,
-        operation_no
-      ]);
-    } else {
-      // CREATE jika belum ada
-      const insertQuery = `
-        INSERT INTO sow (
-          ssbr_id, operation_no, order_no, part_number, part_name, 
-          model, customer, location, wct_group, workcenter, 
-          operationtext, workcenterdescription, planhours, systemstatus, confirmation
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-        RETURNING *
-      `;
-      
-      result = await db.query(insertQuery, [
-        ssbr_id,
-        operation_no,
-        order_no,
-        part_number,
-        part_name,
-        model,
-        customer,
-        location,
-        wct_group,
-        workcenter,
-        operationtext,
-        workcenterdescription,
-        planhours,
-        systemstatus,
-        confirmation
-      ]);
+    // Validasi input
+    if (!ssbr_id || !group || !operations || operations.length === 0) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Missing required fields: ssbr_id, group, atau operations" 
+      });
     }
 
-    res.json(result.rows[0]);
+    console.log("Validation passed");
+
+    const results = [];
+
+    // Loop setiap operation dan upsert
+    for (let idx = 0; idx < operations.length; idx++) {
+      const op = operations[idx];
+      console.log(`Processing operation ${idx + 1}/${operations.length}:`, op.operation_no);
+      
+      // Check apakah data sudah ada berdasarkan ssbr_id + group + operation_no
+      // PERBAIKAN: Pakai "group" dengan double quotes karena reserved keyword
+      const checkQuery = `
+        SELECT idsow FROM sow 
+        WHERE ssbr_id = $1 AND "group" = $2 AND operation_no = $3
+      `;
+      
+      console.log("Check query params:", [ssbr_id, group, op.operation_no]);
+      const existing = await db.query(checkQuery, [ssbr_id, group, op.operation_no]);
+      console.log("Existing rows found:", existing.rows.length);
+
+      let result;
+      
+      if (existing.rows.length > 0) {
+        console.log("UPDATE mode for operation:", op.operation_no);
+        // UPDATE jika sudah ada
+        // PERBAIKAN: Semua kolom reserved keyword pakai double quotes
+        const updateQuery = `
+          UPDATE sow SET 
+            order_no = $1,
+            part_number = $2,
+            part_name = $3,
+            model = $4,
+            customer = $5,
+            location = $6,
+            wct_group = $7,
+            workcenter = $8,
+            operationtext = $9,
+            planhours = $10,
+            remark = $11,
+            weight = $12,
+            created_by = $13,
+            "type" = $14,
+            category = $15
+          WHERE ssbr_id = $16 AND "group" = $17 AND operation_no = $18
+          RETURNING *, 'updated' as action
+        `;
+        
+        result = await db.query(updateQuery, [
+          order_no,
+          part_number,
+          part_name,
+          model,
+          customer,
+          location,
+          op.wct_group,
+          op.workcenter,
+          op.operationtext,
+          op.planhours,
+          op.remark,
+          op.weight,
+          created_by,
+          type,
+          category,
+          ssbr_id,
+          group,
+          op.operation_no
+        ]);
+        console.log("UPDATE success for:", op.operation_no);
+      } else {
+        console.log("INSERT mode for operation:", op.operation_no);
+        // CREATE jika belum ada
+        // PERBAIKAN: Kolom "group" dan "type" pakai double quotes
+        const insertQuery = `
+          INSERT INTO sow (
+            ssbr_id, "group", operation_no, order_no, part_number, 
+            part_name, model, customer, location, wct_group, 
+            workcenter, operationtext, planhours, remark, weight,
+            created_by, "type", category
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+          RETURNING *, 'created' as action
+        `;
+        
+        result = await db.query(insertQuery, [
+          ssbr_id,
+          group,
+          op.operation_no,
+          order_no,
+          part_number,
+          part_name,
+          model,
+          customer,
+          location,
+          op.wct_group,
+          op.workcenter,
+          op.operationtext,
+          op.planhours,
+          op.remark,
+          op.weight,
+          created_by,
+          type,
+          category
+        ]);
+        console.log("INSERT success for:", op.operation_no);
+      }
+
+      results.push(result.rows[0]);
+    }
+
+    console.log("=== UPSERT SUCCESS ===");
+
+    res.json({
+      success: true,
+      count: results.length,
+      data: results
+    });
+
   } catch (err) {
-    console.error('Upsert error:', err);
-    res.status(500).json({ error: err.message });
+    console.error('❌ UPSERT ERROR:', err);
+    console.error('Error message:', err.message);
+    console.error('Error detail:', err.detail);
+    
+    res.status(500).json({ 
+      success: false,
+      error: err.message,
+      detail: err.detail || null
+    });
   }
 };
 
+
+
+// GET BY GROUP & SSBR ID
+exports.getBySSBRAndGroup = async (req, res) => {
+  try {
+    const { ssbr_id, group } = req.params;
+    
+    console.log("=== GET DATA START ===");
+    console.log("Search params:", { ssbr_id, group });
+
+    // Query untuk ambil semua operations berdasarkan ssbr_id dan group
+    const query = `
+      SELECT 
+        ssbr_id,
+        order_no,
+        customer,
+        location,
+        part_name,
+        model,
+        part_number,
+        created_by,
+        "type",
+        "group",
+        category,
+        operation_no,
+        operationtext,
+        wct_group,
+        workcenter,
+        planhours,
+        remark,
+        weight
+      FROM sow 
+      WHERE ssbr_id = $1 AND "group" = $2
+      ORDER BY operation_no ASC
+    `;
+    
+    const result = await db.query(query, [ssbr_id, group]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Data tidak ditemukan"
+      });
+    }
+
+    // Ambil data header dari row pertama (semua row punya header yang sama)
+    const firstRow = result.rows[0];
+    const header = {
+      ssbr_id: firstRow.ssbr_id,
+      order_no: firstRow.order_no,
+      customer: firstRow.customer,
+      location: firstRow.location,
+      part_name: firstRow.part_name,
+      model: firstRow.model,
+      part_number: firstRow.part_number,
+      created_by: firstRow.created_by,
+      type: firstRow.type,
+      group: firstRow.group,
+      category: firstRow.category
+    };
+
+    // Ambil semua operations
+    const operations = result.rows.map(row => ({
+      operation_no: row.operation_no,
+      operationtext: row.operationtext,
+      wct_group: row.wct_group,
+      workcenter: row.workcenter,
+      planhours: row.planhours,
+      remark: row.remark,
+      weight: row.weight
+    }));
+
+    console.log("Data found:", result.rows.length, "operations");
+    console.log("=== GET DATA SUCCESS ===");
+
+    res.json({
+      success: true,
+      count: operations.length,
+      header: header,
+      operations: operations
+    });
+
+  } catch (err) {
+    console.error('❌ GET DATA ERROR:', err);
+    console.error('Error message:', err.message);
+    
+    res.status(500).json({ 
+      success: false,
+      error: err.message
+    });
+  }
+};
 
 exports.getcsv = async (req, res) => {
   try {

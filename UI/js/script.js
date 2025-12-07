@@ -10,6 +10,9 @@ function gotots() {
 function goHome() {
   window.location.href = "index";
 }
+function goregister() {
+  window.location.href = "nfcregist";
+}
 
 function gotojob() {
   window.location.href = "menujob";

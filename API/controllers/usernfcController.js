@@ -11,10 +11,31 @@ exports.getAll = async (req, res) => {
 };
 
 // GET by ID
-exports.getdatausernfc= async (req, res) => { 
+exports.getdatausernfc = async (req, res) => { 
   try {
     const { nfcid } = req.params; 
-    const result = await db.query('SELECT * FROM usernfc WHERE "nfcid" = $1', [nfcid]); 
+    const result = await db.query('SELECT * FROM usernfc WHERE nfcid = $1', [nfcid]); 
+    
+    // PENTING: Kalau tidak ada data, HARUS return 404
+    if (result.rows.length === 0 || !result.rows[0]) {
+      return res.status(404).json({ message: 'Data tidak ditemukan' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+// Tam
+exports.getBySnssb = async (req, res) => {
+  try {
+    const { snssb } = req.params;
+    const result = await db.query('SELECT * FROM usernfc WHERE snssb = $1', [snssb]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Data tidak ditemukan' });
+    }
+    
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -32,12 +53,13 @@ exports.getname= async (req, res) => {
 };
 
 // CREATE
+// CREATE - insert nfcid, full_name, snssb
 exports.create = async (req, res) => {
   try {
-    const { name } = req.body; // contoh field
+    const { nfcid, full_name, snssb } = req.body;
     const result = await db.query(
-      "INSERT INTO usernfc (name) VALUES ($1) RETURNING *",
-      [name]
+      "INSERT INTO usernfc (nfcid, full_name, snssb) VALUES ($1, $2, $3) RETURNING *",
+      [nfcid, full_name, snssb]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -45,14 +67,14 @@ exports.create = async (req, res) => {
   }
 };
 
-// UPDATE
+// UPDATE - update nfcid dan full_name berdasarkan snssb
 exports.update = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { name } = req.body;
+    const { snssb } = req.params; // snssb sebagai parameter
+    const { nfcid, full_name } = req.body;
     const result = await db.query(
-      "UPDATE usernfc SET name = $1 WHERE id = $2 RETURNING *",
-      [name, id]
+      "UPDATE usernfc SET nfcid = $1, full_name = $2 WHERE snssb = $3 RETURNING *",
+      [nfcid, full_name, snssb]
     );
     res.json(result.rows);
   } catch (err) {
@@ -90,9 +112,14 @@ exports.updatemesin = async (req, res) => {
 // DELETE
 exports.remove = async (req, res) => {
   try {
-    const { id } = req.params;
-    await db.query("DELETE FROM usernfc WHERE id = $1", [id]);
-    res.json({ message: "Deleted successfully" });
+    const { nfcid } = req.params;
+    const result = await db.query("DELETE FROM usernfc WHERE nfcid = $1 RETURNING *", [nfcid]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Data tidak ditemukan" });
+    }
+    
+    res.json({ message: "Deleted successfully", data: result.rows[0] });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

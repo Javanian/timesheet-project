@@ -534,9 +534,13 @@
   </div>
 
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get('id');
-    let originalData = {};
+    // ✅ Declare di top-level scope (PALING ATAS)
+const params = new URLSearchParams(window.location.search);
+const id = params.get('id');
+const returnUrl = params.get('returnUrl');
+let originalData = {};
+
+
 
     // Show loading overlay
     function showLoading(message = 'Loading...') {
@@ -757,10 +761,14 @@
 
         showAlert('Timesheet updated successfully!', 'success');
         
-        // Redirect after short delay
+        // ✅ Redirect kembali ke halaman dengan filter yang sama
         setTimeout(() => {
-          window.location.href = 'tsuye';
-        }, 2000);
+          if (returnUrl) {
+            window.location.href = decodeURIComponent(returnUrl);
+          } else {
+            window.location.href = 'tsuye';
+          }
+        }, 1000);
 
       } catch (err) {
         console.error('Error saving changes:', err);
@@ -789,10 +797,20 @@
 
       if (hasChanges) {
         if (confirm('You have unsaved changes. Are you sure you want to leave?')) {
-          window.location.href = 'tsuye';
+          // ✅ Kembali dengan filter
+          if (returnUrl) {
+            window.location.href = decodeURIComponent(returnUrl);
+          } else {
+            window.location.href = 'tsuye';
+          }
         }
       } else {
-        window.location.href = 'tsuye';
+        // ✅ Kembali dengan filter
+        if (returnUrl) {
+          window.location.href = decodeURIComponent(returnUrl);
+        } else {
+          window.location.href = 'tsuye';
+        }
       }
     }
 

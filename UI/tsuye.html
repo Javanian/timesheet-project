@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -88,7 +89,8 @@
       font-size: 0.875rem;
     }
 
-    .search-input, .date-input {
+    .search-input,
+    .date-input {
       padding: 0.55rem 1rem;
       border: 2px solid var(--gray-200);
       border-radius: var(--border-radius);
@@ -97,7 +99,8 @@
       background: white;
     }
 
-    .search-input:focus, .date-input:focus {
+    .search-input:focus,
+    .date-input:focus {
       outline: none;
       border-color: var(--primary-color);
       box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
@@ -177,7 +180,7 @@
 
     .table-wrapper {
       overflow-x: hidden;
-      max-height: 60vh;
+      /*max-height: 60vh; */
     }
 
     table {
@@ -247,6 +250,7 @@
         opacity: 0;
         transform: scaleY(0);
       }
+
       to {
         opacity: 1;
         transform: scaleY(1);
@@ -312,8 +316,13 @@
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
     }
 
     .no-data {
@@ -365,7 +374,8 @@
         flex-direction: column;
       }
 
-      th, td {
+      th,
+      td {
         padding: 0.5rem;
         font-size: 0.75rem;
       }
@@ -386,27 +396,28 @@
     }
   </style>
 </head>
+
 <body>
   <div class="container">
     <div class="header">
-      
-      
+
+
       <div class="filters">
         <div class="filter-group">
           <label>🔍 Search (Serial, Name, Workcenter, Order)</label>
           <input type="text" id="searchInput" class="search-input" placeholder="Type to search...">
         </div>
-        
+
         <div class="filter-group">
           <label>📅 Start Date</label>
           <input type="date" id="startDate" class="date-input">
         </div>
-        
+
         <div class="filter-group">
           <label>📅 End Date</label>
           <input type="date" id="endDate" class="date-input">
         </div>
-        
+
         <div class="filter-actions">
           <button id="filterBtn" class="btn btn-primary">
             🔍 Filter
@@ -471,67 +482,126 @@
     let groupedData = {};
     let expandedGroups = new Set();
 
-    // Load data from API
-async function loadTimesheets(startDate = '', endDate = '') {
-  try {
-    document.getElementById('tableBody').innerHTML = `
-      <tr>
-        <td colspan="12" class="loading">
-          <div class="spinner"></div>
-          Loading timesheet data...
-        </td>
-      </tr>
-    `;
+    // ========================================
+    // URL & SCROLL STATE MANAGEMENT
+    // ========================================
 
-    let url = '/timesheet/';
-    if (startDate && endDate) {
-      url = `/timesheet/search?field=longdate_checkin&start=${startDate}&end=${endDate}`;
+    function loadFilterStateFromURL() {
+      const params = new URLSearchParams(window.location.search);
+
+      const startDate = params.get('startDate');
+      const endDate = params.get('endDate');
+      const search = params.get('search');
+      const expanded = params.get('expanded');
+      const scrollY = params.get('scrollY');
+
+      if (startDate) document.getElementById('startDate').value = startDate;
+      if (endDate) document.getElementById('endDate').value = endDate;
+      if (search) document.getElementById('searchInput').value = search;
+      if (expanded) {
+        expanded.split(',').forEach(serial => expandedGroups.add(serial));
+      }
+
+      return { startDate, endDate, search, scrollY };
     }
-    
-    console.log('🔵 Fetching from:', url);
-    
-    const res = await fetch(url);
-    const responseData = await res.json();
-    
-    console.log('📦 Response data:', responseData);
-    console.log('📦 Type:', typeof responseData);
-    console.log('📦 Is Array:', Array.isArray(responseData));
-    
-    // ✅ Handle berbagai format response
-    let data;
-    if (Array.isArray(responseData)) {
-      // Format langsung array
-      data = responseData;
-    } else if (responseData.data && Array.isArray(responseData.data)) {
-      // Format: { success: true, data: [...], pagination: {...} }
-      data = responseData.data;
-    } else if (responseData.rows && Array.isArray(responseData.rows)) {
-      // Format: { rows: [...] }
-      data = responseData.rows;
-    } else {
-      console.error('❌ Unexpected response format:', responseData);
-      throw new Error('Invalid response format from server');
+
+    function saveFilterStateToURL() {
+      const params = new URLSearchParams();
+
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      const search = document.getElementById('searchInput').value;
+
+      if (startDate) params.set('startDate', startDate);
+      if (endDate) params.set('endDate', endDate);
+      if (search) params.set('search', search);
+      if (expandedGroups.size > 0) {
+        params.set('expanded', Array.from(expandedGroups).join(','));
+      }
+      if (window.scrollY > 0) {
+        params.set('scrollY', Math.round(window.scrollY).toString());
+      }
+
+      const newURL = `${window.location.pathname}?${params.toString()}`;
+      window.history.replaceState({}, '', newURL);
     }
-    
-    console.log('✅ Processed data array length:', data.length);
-    
-    allData = data;
-    filteredData = data;
-    processData();
-    
-  } catch (err) {
-    console.error('💥 Error loading timesheets:', err);
-    document.getElementById('tableBody').innerHTML = `
-      <tr>
-        <td colspan="12" class="no-data">
-          ❌ Failed to load timesheet data: ${err.message}
-        </td>
-      </tr>
-    `;
-  }
+
+    function restoreScrollPosition(scrollY) {
+  if (!scrollY || scrollY === '0') return;
+  
+  const targetScroll = parseInt(scrollY);
+  
+  // Wait for all content to render
+  setTimeout(() => {
+    window.scrollTo({
+      top: targetScroll,
+      behavior: 'instant'  // ✅ Instant - no animation jitter
+    });
+  }, 100);  // Single delay untuk DOM ready
 }
 
-    // Group data by serial number
+    // ========================================
+    // DATA LOADING
+    // ========================================
+
+    async function loadTimesheets(startDate = '', endDate = '') {
+      try {
+        document.getElementById('tableBody').innerHTML = `
+          <tr>
+            <td colspan="12" class="loading">
+              <div class="spinner"></div>
+              Loading timesheet data...
+            </td>
+          </tr>
+        `;
+
+        let url = '/timesheet/';
+        if (startDate && endDate) {
+          url = `/timesheet/search?field=longdate_checkin&start=${startDate}&end=${endDate}`;
+        }
+
+        const res = await fetch(url);
+        const responseData = await res.json();
+
+        let data;
+        if (Array.isArray(responseData)) {
+          data = responseData;
+        } else if (responseData.data && Array.isArray(responseData.data)) {
+          data = responseData.data;
+        } else if (responseData.rows && Array.isArray(responseData.rows)) {
+          data = responseData.rows;
+        } else {
+          throw new Error('Invalid response format from server');
+        }
+
+        allData = data;
+        filteredData = data;
+
+        const searchTerm = document.getElementById('searchInput').value;
+        if (searchTerm) {
+          applySearchFilter();
+        } else {
+          processData();
+        }
+
+        saveFilterStateToURL();
+
+      } catch (err) {
+        console.error('Error loading timesheets:', err);
+        document.getElementById('tableBody').innerHTML = `
+          <tr>
+            <td colspan="12" class="no-data">
+              ❌ Failed to load timesheet data: ${err.message}
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // ========================================
+    // DATA PROCESSING
+    // ========================================
+
     function groupBySerial(data) {
       const grouped = {};
       data.forEach(item => {
@@ -544,7 +614,6 @@ async function loadTimesheets(startDate = '', endDate = '') {
       return grouped;
     }
 
-    // Calculate group summary
     function calculateGroupSummary(children) {
       const totalDuration = children.reduce((sum, child) => {
         const duration = parseFloat(child.duration) || 0;
@@ -555,7 +624,7 @@ async function loadTimesheets(startDate = '', endDate = '') {
         .map(child => child.longdate_checkin)
         .filter(Boolean)
         .map(time => new Date(time));
-      
+
       const checkoutTimes = children
         .map(child => child.longdate_checkout)
         .filter(Boolean)
@@ -574,7 +643,6 @@ async function loadTimesheets(startDate = '', endDate = '') {
       };
     }
 
-    // Format datetime for display
     function formatDateTime(dateTime) {
       if (!dateTime) return '';
       const d = new Date(dateTime);
@@ -589,12 +657,15 @@ async function loadTimesheets(startDate = '', endDate = '') {
       }).replace(',', '');
     }
 
-    // Create parent row
+    // ========================================
+    // UI CREATION
+    // ========================================
+
     function createParentRow(serial, summary, isExpanded) {
       const tr = document.createElement('tr');
       tr.className = `parent-row ${isExpanded ? 'expanded' : ''}`;
       tr.dataset.serial = serial;
-      
+
       tr.innerHTML = `
         <td>
           <span class="expand-icon ${isExpanded ? 'expanded' : ''}">▶</span>
@@ -626,11 +697,10 @@ async function loadTimesheets(startDate = '', endDate = '') {
       return tr;
     }
 
-    // Create child row
     function createChildRow(item, isVisible) {
       const tr = document.createElement('tr');
       const isValidated = !!item.validation_date;
-      
+
       tr.className = `child-row ${isValidated ? 'validated' : ''} ${isVisible ? 'show' : 'hide'}`;
       tr.dataset.tsnumber = item.tsnumber;
       tr.dataset.serial = item.serialnumber;
@@ -647,22 +717,30 @@ async function loadTimesheets(startDate = '', endDate = '') {
         <td class="duration-cell">${item.duration || '0'}</td>
         <td>${item.workcentercode || ''}</td>
         <td>
-          ${isValidated 
+          ${isValidated
             ? '<span class="status-badge status-validated">✓ Validated</span>'
             : '<span class="status-badge status-pending">⏳ Pending</span>'
           }
         </td>
         <td>
-          <button class="validate-btn" onclick="validateSingle('${item.tsnumber}')" ${isValidated ? 'disabled' : ''}>
+          <button class="validate-btn" data-tsnumber="${item.tsnumber}" ${isValidated ? 'disabled' : ''}>
             ✓
           </button>
         </td>
       `;
 
       if (!isValidated) {
+        const validateBtn = tr.querySelector('.validate-btn');
+        validateBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          validateSingle(item.tsnumber);
+        });
+
         tr.addEventListener('click', (e) => {
-          if (e.target.tagName !== 'BUTTON') {
-            window.location.href = `tsuyeedit?id=${item.tsnumber}`;
+          if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+            saveFilterStateToURL();
+            const currentURL = window.location.href;
+            window.location.href = `tsuyeedit?id=${item.tsnumber}&returnUrl=${encodeURIComponent(currentURL)}`;
           }
         });
       }
@@ -670,7 +748,10 @@ async function loadTimesheets(startDate = '', endDate = '') {
       return tr;
     }
 
-    // Toggle group expansion
+    // ========================================
+    // UI INTERACTIONS
+    // ========================================
+
     function toggleGroup(serial) {
       const isExpanded = expandedGroups.has(serial);
       const parentRow = document.querySelector(`[data-serial="${serial}"].parent-row`);
@@ -694,9 +775,10 @@ async function loadTimesheets(startDate = '', endDate = '') {
           row.classList.add('show');
         });
       }
+
+      saveFilterStateToURL();
     }
 
-    // Process and render data
     function processData() {
       groupedData = groupBySerial(filteredData);
       const tbody = document.getElementById('tableBody');
@@ -714,15 +796,10 @@ async function loadTimesheets(startDate = '', endDate = '') {
         return;
       }
 
-      // Create rows for each group
       Object.entries(groupedData).forEach(([serial, children]) => {
         const summary = calculateGroupSummary(children);
         const isExpanded = expandedGroups.has(serial);
-
-        // Add parent row
         tbody.appendChild(createParentRow(serial, summary, isExpanded));
-
-        // Add child rows
         children.forEach(child => {
           tbody.appendChild(createChildRow(child, isExpanded));
         });
@@ -731,7 +808,6 @@ async function loadTimesheets(startDate = '', endDate = '') {
       updateStats();
     }
 
-    // Update statistics
     function updateStats() {
       const totalHours = filteredData.reduce((sum, item) => {
         return sum + (parseFloat(item.duration) || 0);
@@ -742,10 +818,9 @@ async function loadTimesheets(startDate = '', endDate = '') {
       document.getElementById('totalGroups').textContent = Object.keys(groupedData).length;
     }
 
-    // Apply search filter
     function applySearchFilter() {
       const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-      
+
       if (!searchTerm) {
         filteredData = [...allData];
       } else {
@@ -758,221 +833,197 @@ async function loadTimesheets(startDate = '', endDate = '') {
           );
         });
       }
-      
+
       processData();
     }
 
- 
+    // ========================================
+    // VALIDATION
+    // ========================================
 
-// Helper function untuk update UI tanpa reload
-function updateUIAfterValidation(tsnumbers) {
-  tsnumbers.forEach(tsnumber => {
-    // 1. Update data di memory
-    const item = allData.find(d => d.tsnumber === tsnumber);
-    if (item) {
-      item.validation_date = new Date().toISOString(); // Set validation date
-      item.tsstatus = 'V'; // Validated
+    function updateUIAfterValidation(tsnumbers) {
+      tsnumbers.forEach(tsnumber => {
+        const item = allData.find(d => d.tsnumber === tsnumber);
+        if (item) {
+          item.validation_date = new Date().toISOString();
+          item.tsstatus = 'V';
+        }
+
+        const row = document.querySelector(`tr.child-row[data-tsnumber="${tsnumber}"]`);
+        if (row) {
+          row.classList.add('validated');
+
+          const statusTd = row.querySelector('td:nth-child(11)');
+          if (statusTd) {
+            statusTd.innerHTML = '<span class="status-badge status-validated">✓ Validated</span>';
+          }
+
+          const validateBtn = row.querySelector('.validate-btn');
+          if (validateBtn) {
+            validateBtn.disabled = true;
+            validateBtn.textContent = '✓';
+            validateBtn.style.opacity = '0.5';
+          }
+
+          row.style.cursor = 'default';
+          row.onclick = null;
+        }
+      });
+
+      updateGroupSummaries(tsnumbers);
     }
-    
-    // 2. Update row di UI
-    const row = document.querySelector(`tr.child-row[data-tsnumber="${tsnumber}"]`);
-    if (row) {
-      // Update class row
-      row.classList.add('validated');
-      
-      // Update status badge
-      const statusTd = row.querySelector('td:nth-child(11)'); // kolom Status
-      if (statusTd) {
-        statusTd.innerHTML = '<span class="status-badge status-validated">✓ Validated</span>';
+
+    function updateGroupSummaries(tsnumbers) {
+      const affectedSerials = new Set();
+
+      tsnumbers.forEach(tsnumber => {
+        const item = allData.find(d => d.tsnumber === tsnumber);
+        if (item) {
+          affectedSerials.add(item.serialnumber);
+        }
+      });
+
+      affectedSerials.forEach(serial => {
+        const groupData = groupedData[serial];
+        if (!groupData) return;
+
+        const allValidated = groupData.every(item => item.validation_date);
+        const parentRow = document.querySelector(`tr.parent-row[data-serial="${serial}"]`);
+        const groupBtn = parentRow?.querySelector('.validate-btn');
+
+        if (groupBtn && allValidated) {
+          groupBtn.disabled = true;
+          groupBtn.textContent = '✓ All Validated';
+          groupBtn.style.opacity = '0.5';
+        }
+      });
+    }
+
+    async function validateSingle(tsnumber) {
+      const row = document.querySelector(`tr.child-row[data-tsnumber="${tsnumber}"]`);
+      const btn = row?.querySelector('.validate-btn');
+
+      if (!btn) return;
+
+      const item = allData.find(d => d.tsnumber === tsnumber);
+      if (!item) return;
+
+      if (!item.longdate_checkout || !item.date_checkout || !item.hour_checkout) {
+        alert('⚠️ Cannot validate: Checkout time is empty!\n\nPlease complete the checkout time first.');
+        return;
       }
-      
-      // Update tombol validate
-      const validateBtn = row.querySelector('.validate-btn');
-      if (validateBtn) {
-        validateBtn.disabled = true;
-        validateBtn.textContent = '✓';
-        validateBtn.style.opacity = '0.5';
+
+      const originalText = btn.textContent;
+
+      try {
+        btn.disabled = true;
+        btn.innerHTML = '<div class="spinner" style="width: 12px; height: 12px; margin: 0;"></div>';
+
+        await fetch('/timesheet/validation', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tsnumbers: [tsnumber] })
+        });
+
+        updateUIAfterValidation([tsnumber]);
+
+      } catch (err) {
+        console.error('Validation error:', err);
+        alert('Failed to validate record');
+        btn.disabled = false;
+        btn.textContent = originalText;
       }
-      
-      // Remove click event (karena sudah validated)
-      row.style.cursor = 'default';
-      row.onclick = null;
     }
-  });
-  
-  // 3. Update summary parent row (recalculate jika perlu)
-  updateGroupSummaries(tsnumbers);
-}
 
-// Update group summaries setelah validasi
-function updateGroupSummaries(tsnumbers) {
-  const affectedSerials = new Set();
-  
-  // Cari serial number yang terpengaruh
-  tsnumbers.forEach(tsnumber => {
-    const item = allData.find(d => d.tsnumber === tsnumber);
-    if (item) {
-      affectedSerials.add(item.serialnumber);
-    }
-  });
-  
-  // Update tiap group yang terpengaruh
-  affectedSerials.forEach(serial => {
-    const groupData = groupedData[serial];
-    if (!groupData) return;
-    
-    const allValidated = groupData.every(item => item.validation_date);
-    const parentRow = document.querySelector(`tr.parent-row[data-serial="${serial}"]`);
-    const groupBtn = parentRow?.querySelector('.validate-btn');
-    
-    if (groupBtn && allValidated) {
-      groupBtn.disabled = true;
-      groupBtn.textContent = '✓ All Validated';
-      groupBtn.style.opacity = '0.5';
-    }
-  });
-}
+    async function validateGroup(serial) {
+      const parentRow = document.querySelector(`tr.parent-row[data-serial="${serial}"]`);
+      const btn = parentRow?.querySelector('.validate-btn');
 
-// Validate single record dengan loading state
-// Validate single record dengan loading state
-async function validateSingle(tsnumber) {
-  const row = document.querySelector(`tr.child-row[data-tsnumber="${tsnumber}"]`);
-  const btn = row?.querySelector('.validate-btn');
-  
-  if (!btn) return;
-  
-  // ✅ VALIDASI: Cek apakah checkout sudah diisi
-  const item = allData.find(d => d.tsnumber === tsnumber);
-  if (!item) return;
-  
-  if (!item.longdate_checkout || !item.date_checkout || !item.hour_checkout) {
-    alert('⚠️ Cannot validate: Checkout time is empty!\n\nPlease complete the checkout time first.');
-    return;
-  }
-  
-  const originalText = btn.textContent;
-  
-  try {
-    // Show loading
-    btn.disabled = true;
-    btn.innerHTML = '<div class="spinner" style="width: 12px; height: 12px; margin: 0;"></div>';
-    
-    // Kirim request ke server
-    await fetch('/timesheet/validation', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tsnumbers: [tsnumber] })
+      if (!btn) return;
+
+      const groupData = groupedData[serial];
+      if (!groupData) return;
+
+      const validatableItems = groupData.filter(item =>
+        (item.longdate_checkout && item.date_checkout && item.hour_checkout) &&
+        !item.validation_date
+      );
+
+      if (validatableItems.length === 0) {
+        alert('⚠️ No records to validate!\n\nAll records are either incomplete or already validated.');
+        return;
+      }
+
+      const incompleteCount = groupData.filter(item =>
+        !item.longdate_checkout || !item.date_checkout || !item.hour_checkout
+      ).length;
+
+      const alreadyValidatedCount = groupData.filter(item => item.validation_date).length;
+
+      let message = `Ready to validate ${validatableItems.length} record(s)`;
+      if (incompleteCount > 0) {
+        message += `\n\n⚠️ ${incompleteCount} record(s) will be skipped (incomplete checkout)`;
+      }
+      if (alreadyValidatedCount > 0) {
+        message += `\n✓ ${alreadyValidatedCount} record(s) already validated`;
+      }
+
+      if (!confirm(message + '\n\nContinue?')) {
+        return;
+      }
+
+      const originalText = btn.textContent;
+
+      try {
+        const tsnumbers = validatableItems.map(item => item.tsnumber);
+
+        btn.disabled = true;
+        btn.innerHTML = '<div class="spinner" style="width: 12px; height: 12px; margin: 0;"></div>';
+
+        const response = await fetch('/timesheet/validation', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tsnumbers })
+        });
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+          throw new Error(error.error || `HTTP ${response.status}`);
+        }
+
+        const result = await response.json();
+        updateUIAfterValidation(tsnumbers);
+
+        btn.textContent = '✓ Done';
+        btn.style.background = '#10b981';
+
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.style.background = '';
+          btn.disabled = false;
+        }, 1000);
+
+      } catch (err) {
+        console.error('Group validation error:', err);
+        alert(`❌ Failed to validate group: ${err.message}`);
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    }
+
+    // ========================================
+    // EVENT LISTENERS
+    // ========================================
+
+    document.getElementById('searchInput').addEventListener('input', () => {
+      applySearchFilter();
+      saveFilterStateToURL();
     });
-    
-    // Success - update UI
-    updateUIAfterValidation([tsnumber]);
-    
-  } catch (err) {
-    console.error('Validation error:', err);
-    alert('Failed to validate record');
-    
-    // Rollback
-    btn.disabled = false;
-    btn.textContent = originalText;
-  }
-}
-
-// Validate entire group dengan loading state
-async function validateGroup(serial) {
-  const parentRow = document.querySelector(`tr.parent-row[data-serial="${serial}"]`);
-  const btn = parentRow?.querySelector('.validate-btn');
-  
-  if (!btn) return;
-  
-  const groupData = groupedData[serial];
-  if (!groupData) return;
-  
-  // ✅ Filter: Hanya ambil yang checkout sudah diisi DAN belum validated
-  const validatableItems = groupData.filter(item => 
-    (item.longdate_checkout && item.date_checkout && item.hour_checkout) && // checkout complete
-    !item.validation_date // belum validated
-  );
-  
-  if (validatableItems.length === 0) {
-    alert('⚠️ No records to validate!\n\nAll records are either incomplete or already validated.');
-    return;
-  }
-  
-  // Info berapa yang akan di-validate
-  const incompleteCount = groupData.filter(item => 
-    !item.longdate_checkout || !item.date_checkout || !item.hour_checkout
-  ).length;
-  
-  const alreadyValidatedCount = groupData.filter(item => item.validation_date).length;
-  
-  let message = `Ready to validate ${validatableItems.length} record(s)`;
-  if (incompleteCount > 0) {
-    message += `\n\n⚠️ ${incompleteCount} record(s) will be skipped (incomplete checkout)`;
-  }
-  if (alreadyValidatedCount > 0) {
-    message += `\n✓ ${alreadyValidatedCount} record(s) already validated`;
-  }
-  
-  if (!confirm(message + '\n\nContinue?')) {
-    return;
-  }
-  
-  const originalText = btn.textContent;
-  
-  try {
-    const tsnumbers = validatableItems.map(item => item.tsnumber);
-    
-    // Show loading
-    btn.disabled = true;
-    btn.innerHTML = '<div class="spinner" style="width: 12px; height: 12px; margin: 0;"></div>';
-    
-    // ✅ Kirim request ke server dengan pengecekan response
-    const response = await fetch('/timesheet/validation', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tsnumbers })
-    });
-
-    // ✅ Cek apakah request berhasil
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(error.error || `HTTP ${response.status}`);
-    }
-
-    // ✅ Parse response untuk konfirmasi
-    const result = await response.json();
-    console.log('Validation success:', result);
-    
-    // Success - update UI
-    updateUIAfterValidation(tsnumbers);
-    
-    // ✅ PERBAIKAN: Reset button setelah sukses
-    btn.textContent = '✓ Done';
-    btn.style.background = '#10b981'; // hijau
-    
-    // ✅ Optional: Kembalikan ke state normal setelah 2 detik
-    setTimeout(() => {
-      btn.textContent = originalText;
-      btn.style.background = '';
-      btn.disabled = false;
-    }, 2000);
-    
-  } catch (err) {
-    console.error('Group validation error:', err);
-    alert(`❌ Failed to validate group: ${err.message}`);
-    
-    // Rollback
-    btn.disabled = false;
-    btn.textContent = originalText;
-  }
-}
-    // Event listeners
-    document.getElementById('searchInput').addEventListener('input', applySearchFilter);
 
     document.getElementById('filterBtn').addEventListener('click', () => {
       const startDate = document.getElementById('startDate').value;
       const endDate = document.getElementById('endDate').value;
-      
+
       if (startDate && endDate) {
         loadTimesheets(`${startDate} 00:00:00`, `${endDate} 23:59:59`);
       } else {
@@ -985,15 +1036,45 @@ async function validateGroup(serial) {
       document.getElementById('endDate').value = '';
       document.getElementById('searchInput').value = '';
       expandedGroups.clear();
+      window.history.replaceState({}, '', window.location.pathname);
       loadTimesheets();
     });
 
-    // Make functions globally accessible
+    let scrollTimeout;
+    window.addEventListener('scroll', () => {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        saveFilterStateToURL();
+      }, 200);
+    });
+
+    // ========================================
+    // GLOBAL FUNCTIONS
+    // ========================================
+
     window.validateSingle = validateSingle;
     window.validateGroup = validateGroup;
 
-    // Initialize
-    loadTimesheets();
-  </script>
+    // ========================================
+    // INITIALIZATION
+    // ========================================
+
+    const filterState = loadFilterStateFromURL();
+
+    if (filterState.startDate && filterState.endDate) {
+      loadTimesheets(`${filterState.startDate} 00:00:00`, `${filterState.endDate} 23:59:59`).then(() => {
+        if (filterState.scrollY) {
+          restoreScrollPosition(filterState.scrollY);
+        }
+      });
+    } else {
+      loadTimesheets().then(() => {
+        if (filterState.scrollY) {
+          restoreScrollPosition(filterState.scrollY);
+        }
+      });
+    }
+</script>
 </body>
+
 </html>
