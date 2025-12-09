@@ -27,6 +27,7 @@ app.get("/health", (req, res) => {
 });
 
 // Pastikan di ./routes/sow.js dan ./routes/usernfc.js: module.exports = router;
+app.use("/drawings", express.static("//10.44.192.172/PE/02. DRAFTING"));
 app.use("/sow", require("./routes/sow"));
 app.use("/usernfc", require("./routes/usernfc"));
 app.use("/workcenter", require("./routes/workcenter"));

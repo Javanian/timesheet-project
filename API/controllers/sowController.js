@@ -660,3 +660,611 @@ exports.getcsvbyid = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+// ============================================
+// PARTS ENDPOINTS
+// ============================================
+
+// GET all parts
+exports.getAllParts = async (req, res) => {
+  try {
+    console.log('getAllParts called'); // Tambah ini
+    
+    const result = await db.query(`
+      SELECT 
+        p.*,
+        COUNT(o.operation_id) as total_operations,
+        SUM(o.planhours) as total_hours
+      FROM parts p
+      LEFT JOIN operations o ON p.part_id = o.part_id
+      GROUP BY p.part_id
+      ORDER BY p.partnumber
+    `);
+    
+    console.log('Query result:', result.rows.length, 'rows'); // Tambah ini
+    
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error in getAllParts:', err); // Tambah ini
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// GET parts with search/filter
+exports.searchParts = async (req, res) => {
+  try {
+    const { query } = req.query; // ?query=xxx
+    
+    if (!query) {
+      return exports.getAllParts(req, res);
+    }
+
+    const result = await db.query(`
+      SELECT 
+        p.*,
+        COUNT(o.operation_id) as total_operations,
+        SUM(o.planhours) as total_hours
+      FROM parts p
+      LEFT JOIN operations o ON p.part_id = o.part_id
+      WHERE 
+        p.partnumber ILIKE $1 OR
+        p.partname ILIKE $1 OR
+        p.model ILIKE $1
+      GROUP BY p.part_id
+      ORDER BY p.partnumber
+    `, [`%${query}%`]);
+    
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// GET single part by ID
+exports.getPartById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await db.query(`
+      SELECT 
+        p.*,
+        COUNT(o.operation_id) as total_operations,
+        SUM(o.planhours) as total_hours
+      FROM parts p
+      LEFT JOIN operations o ON p.part_id = o.part_id
+      WHERE p.part_id = $1
+      GROUP BY p.part_id
+    `, [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Part not found" });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// CREATE new part
+exports.createPart = async (req, res) => {
+  try {
+    const { partnumber, partname, model, drawing_path } = req.body;
+    
+    // Validation
+    if (!partnumber || !partname || !model) {
+      return res.status(400).json({ 
+        error: "partnumber, partname, and model are required" 
+      });
+    }
+
+    const result = await db.query(`
+      INSERT INTO parts (partnumber, partname, model, drawing_path)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+    `, [partnumber, partname, model, drawing_path || null]);
+    
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    // Handle duplicate partnumber
+    if (err.code === '23505') {
+      return res.status(409).json({ 
+        error: "Part number already exists" 
+      });
+    }
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// UPDATE part
+exports.updatePart = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { partnumber, partname, model, drawing_path } = req.body;
+    
+    // Validation
+    if (!partnumber || !partname || !model) {
+      return res.status(400).json({ 
+        error: "partnumber, partname, and model are required" 
+      });
+    }
+
+    const result = await db.query(`
+      UPDATE parts
+      SET partnumber = $1,
+          partname = $2,
+          model = $3,
+          drawing_path = $4,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE part_id = $5
+      RETURNING *
+    `, [partnumber, partname, model, drawing_path || null, id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Part not found" });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (err) {
+    // Handle duplicate partnumber
+    if (err.code === '23505') {
+      return res.status(409).json({ 
+        error: "Part number already exists" 
+      });
+    }
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// DELETE part
+exports.deletePart = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await db.query(`
+      DELETE FROM parts
+      WHERE part_id = $1
+      RETURNING *
+    `, [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Part not found" });
+    }
+    
+    res.json({ 
+      message: "Part deleted successfully",
+      deleted: result.rows[0]
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ============================================
+// OPERATIONS ENDPOINTS
+// ============================================
+
+// GET all operations by part_id
+exports.getOperationsByPartId = async (req, res) => {
+  try {
+    const { part_id } = req.params;
+    
+    const result = await db.query(`
+      SELECT *
+      FROM operations
+      WHERE part_id = $1
+      ORDER BY opr_no
+    `, [part_id]);
+    
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// GET single operation by ID
+exports.getOperationById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await db.query(`
+      SELECT *
+      FROM operations
+      WHERE operation_id = $1
+    `, [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Operation not found" });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// CREATE new operation
+exports.createOperation = async (req, res) => {
+  try {
+    const { 
+      part_id, 
+      opr_no, 
+      operationtext, 
+      wct_group, 
+      workcenter, 
+      planhours, 
+      drawing_path, 
+      remark 
+    } = req.body;
+    
+    // Validation
+    if (!part_id || !opr_no || !operationtext) {
+      return res.status(400).json({ 
+        error: "part_id, opr_no, and operationtext are required" 
+      });
+    }
+
+    const result = await db.query(`
+      INSERT INTO operations 
+      (part_id, opr_no, operationtext, wct_group, workcenter, planhours, drawing_path, remark)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *
+    `, [
+      part_id, 
+      opr_no, 
+      operationtext, 
+      wct_group || null, 
+      workcenter || null, 
+      planhours || null, 
+      drawing_path || null, 
+      remark || null
+    ]);
+    
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    // Handle duplicate opr_no for same part
+    if (err.code === '23505') {
+      return res.status(409).json({ 
+        error: "Operation number already exists for this part" 
+      });
+    }
+    // Handle foreign key violation
+    if (err.code === '23503') {
+      return res.status(404).json({ 
+        error: "Part not found" 
+      });
+    }
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// UPDATE operation
+exports.updateOperation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { 
+      opr_no, 
+      operationtext, 
+      wct_group, 
+      workcenter, 
+      planhours, 
+      drawing_path, 
+      remark 
+    } = req.body;
+    
+    // Validation
+    if (!opr_no || !operationtext) {
+      return res.status(400).json({ 
+        error: "opr_no and operationtext are required" 
+      });
+    }
+
+    const result = await db.query(`
+      UPDATE operations
+      SET opr_no = $1,
+          operationtext = $2,
+          wct_group = $3,
+          workcenter = $4,
+          planhours = $5,
+          drawing_path = $6,
+          remark = $7,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE operation_id = $8
+      RETURNING *
+    `, [
+      opr_no, 
+      operationtext, 
+      wct_group || null, 
+      workcenter || null, 
+      planhours || null, 
+      drawing_path || null, 
+      remark || null,
+      id
+    ]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Operation not found" });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (err) {
+    // Handle duplicate opr_no for same part
+    if (err.code === '23505') {
+      return res.status(409).json({ 
+        error: "Operation number already exists for this part" 
+      });
+    }
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// DELETE operation
+exports.deleteOperation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await db.query(`
+      DELETE FROM operations
+      WHERE operation_id = $1
+      RETURNING *
+    `, [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Operation not found" });
+    }
+    
+    res.json({ 
+      message: "Operation deleted successfully",
+      deleted: result.rows[0]
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ============================================
+// BULK OPERATIONS
+// ============================================
+
+// CREATE part with operations (bulk insert)
+exports.createPartWithOperations = async (req, res) => {
+  const client = await db.query('SELECT 1'); // Get client from pool
+  
+  try {
+    const { part, operations } = req.body;
+    
+    // Validation
+    if (!part || !part.partnumber || !part.partname || !part.model) {
+      return res.status(400).json({ 
+        error: "Part information is required (partnumber, partname, model)" 
+      });
+    }
+
+    // Begin transaction
+    await db.query('BEGIN');
+
+    // Insert part
+    const partResult = await db.query(`
+      INSERT INTO parts (partnumber, partname, model, drawing_path)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+    `, [part.partnumber, part.partname, part.model, part.drawing_path || null]);
+    
+    const newPart = partResult.rows[0];
+
+    // Insert operations if provided
+    let newOperations = [];
+    if (operations && operations.length > 0) {
+      for (const op of operations) {
+        const opResult = await db.query(`
+          INSERT INTO operations 
+          (part_id, opr_no, operationtext, wct_group, workcenter, planhours, drawing_path, remark)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          RETURNING *
+        `, [
+          newPart.part_id,
+          op.opr_no,
+          op.operationtext,
+          op.wct_group || null,
+          op.workcenter || null,
+          op.planhours || null,
+          op.drawing_path || null,
+          op.remark || null
+        ]);
+        newOperations.push(opResult.rows[0]);
+      }
+    }
+
+    // Commit transaction
+    await db.query('COMMIT');
+
+    res.status(201).json({
+      part: newPart,
+      operations: newOperations
+    });
+  } catch (err) {
+    // Rollback on error
+    await db.query('ROLLBACK');
+    
+    if (err.code === '23505') {
+      return res.status(409).json({ 
+        error: "Part number or operation number already exists" 
+      });
+    }
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// UPDATE part with operations (bulk update)
+exports.updatePartWithOperations = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { part, operations } = req.body;
+    
+    // Validation
+    if (!part || !part.partnumber || !part.partname || !part.model) {
+      return res.status(400).json({ 
+        error: "Part information is required (partnumber, partname, model)" 
+      });
+    }
+
+    // Begin transaction
+    await db.query('BEGIN');
+
+    // Update part
+    const partResult = await db.query(`
+      UPDATE parts
+      SET partnumber = $1,
+          partname = $2,
+          model = $3,
+          drawing_path = $4,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE part_id = $5
+      RETURNING *
+    `, [part.partnumber, part.partname, part.model, part.drawing_path || null, id]);
+    
+    if (partResult.rows.length === 0) {
+      await db.query('ROLLBACK');
+      return res.status(404).json({ error: "Part not found" });
+    }
+
+    const updatedPart = partResult.rows[0];
+
+    // Delete existing operations
+    await db.query(`DELETE FROM operations WHERE part_id = $1`, [id]);
+
+    // Insert new operations
+    let newOperations = [];
+    if (operations && operations.length > 0) {
+      for (const op of operations) {
+        const opResult = await db.query(`
+          INSERT INTO operations 
+          (part_id, opr_no, operationtext, wct_group, workcenter, planhours, drawing_path, remark)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          RETURNING *
+        `, [
+          id,
+          op.opr_no,
+          op.operationtext,
+          op.wct_group || null,
+          op.workcenter || null,
+          op.planhours || null,
+          op.drawing_path || null,
+          op.remark || null
+        ]);
+        newOperations.push(opResult.rows[0]);
+      }
+    }
+
+    // Commit transaction
+    await db.query('COMMIT');
+
+    res.json({
+      part: updatedPart,
+      operations: newOperations
+    });
+  } catch (err) {
+    // Rollback on error
+    await db.query('ROLLBACK');
+    
+    if (err.code === '23505') {
+      return res.status(409).json({ 
+        error: "Part number or operation number already exists" 
+      });
+    }
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// GET part with all operations (complete SOW)
+exports.getCompleteSOW = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Get part
+    const partResult = await db.query(`
+      SELECT * FROM parts WHERE part_id = $1
+    `, [id]);
+    
+    if (partResult.rows.length === 0) {
+      return res.status(404).json({ error: "Part not found" });
+    }
+
+    // Get operations
+    const opsResult = await db.query(`
+      SELECT * FROM operations 
+      WHERE part_id = $1 
+      ORDER BY opr_no
+    `, [id]);
+
+    res.json({
+      part: partResult.rows[0],
+      operations: opsResult.rows
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ============================================
+// STATISTICS & REPORTS
+// ============================================
+
+// GET statistics
+exports.getStatistics = async (req, res) => {
+  try {
+    const stats = await db.query(`
+      SELECT 
+        COUNT(DISTINCT p.part_id) as total_parts,
+        COUNT(DISTINCT p.model) as total_models,
+        COUNT(o.operation_id) as total_operations,
+        SUM(o.planhours) as total_hours,
+        AVG(o.planhours) as avg_hours_per_operation
+      FROM parts p
+      LEFT JOIN operations o ON p.part_id = o.part_id
+    `);
+    
+    res.json(stats.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// GET drawing usage report (which drawings are used in multiple operations)
+exports.getDrawingUsageReport = async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT 
+        p.partnumber,
+        p.partname,
+        o.drawing_path,
+        COUNT(*) as usage_count,
+        STRING_AGG(o.opr_no::TEXT || ': ' || o.operationtext, ' | ' ORDER BY o.opr_no) as operations
+      FROM operations o
+      JOIN parts p ON o.part_id = p.part_id
+      WHERE o.drawing_path IS NOT NULL
+      GROUP BY p.partnumber, p.partname, o.drawing_path
+      HAVING COUNT(*) > 1
+      ORDER BY usage_count DESC, p.partnumber
+    `);
+    
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ============================================
+// LEGACY COMPATIBILITY (dari table sow lama)
+// ============================================
+
+// GET all from old sow table
+exports.getAll = async (req, res) => {
+  try {
+    const result = await db.query("SELECT * FROM sow");
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
