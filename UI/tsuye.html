@@ -506,39 +506,63 @@
     }
 
     function saveFilterStateToURL() {
-      const params = new URLSearchParams();
+  // PERBAIKAN: Gunakan parameter yang sudah ada di URL
+  const params = new URLSearchParams(window.location.search);
 
-      const startDate = document.getElementById('startDate').value;
-      const endDate = document.getElementById('endDate').value;
-      const search = document.getElementById('searchInput').value;
+  const startDate = document.getElementById('startDate').value;
+  const endDate = document.getElementById('endDate').value;
+  const search = document.getElementById('searchInput').value;
 
-      if (startDate) params.set('startDate', startDate);
-      if (endDate) params.set('endDate', endDate);
-      if (search) params.set('search', search);
-      if (expandedGroups.size > 0) {
-        params.set('expanded', Array.from(expandedGroups).join(','));
-      }
-      if (window.scrollY > 0) {
-        params.set('scrollY', Math.round(window.scrollY).toString());
-      }
+  if (startDate) params.set('startDate', startDate);
+  else params.delete('startDate');
 
-      const newURL = `${window.location.pathname}?${params.toString()}`;
-      window.history.replaceState({}, '', newURL);
-    }
+  if (endDate) params.set('endDate', endDate);
+  else params.delete('endDate');
+
+  if (search) params.set('search', search);
+  else params.delete('search');
+
+  if (expandedGroups.size > 0) {
+    params.set('expanded', Array.from(expandedGroups).join(','));
+  } else {
+    params.delete('expanded');
+  }
+
+  // PERBAIKAN: Pastikan scrollY selalu diupdate dengan nilai current
+  const currentScrollY = Math.round(window.scrollY);
+  params.set('scrollY', currentScrollY.toString());
+
+  const newURL = `${window.location.pathname}?${params.toString()}`;
+  window.history.replaceState({}, '', newURL);
+  
+  console.log('Scroll saved:', currentScrollY); // Untuk debugging
+}
 
     function restoreScrollPosition(scrollY) {
-  if (!scrollY || scrollY === '0') return;
-  
-  const targetScroll = parseInt(scrollY);
-  
-  // Wait for all content to render
-  setTimeout(() => {
-    window.scrollTo({
-      top: targetScroll,
-      behavior: 'instant'  // ✅ Instant - no animation jitter
-    });
-  }, 100);  // Single delay untuk DOM ready
-}
+      if (!scrollY || scrollY === '0') return;
+      
+      const targetScroll = parseInt(scrollY);
+      
+      // PERBAIKAN: Gunakan DOMContentLoaded atau setTimeout untuk memastikan
+      // tabel sudah dirender sepenuhnya
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          setTimeout(() => {
+            window.scrollTo({
+              top: targetScroll,
+              behavior: 'auto'
+            });
+          }, 300);
+        });
+      } else {
+        setTimeout(() => {
+          window.scrollTo({
+            top: targetScroll,
+            behavior: 'auto'
+          });
+        }, 300);
+      }
+    }
 
     // ========================================
     // DATA LOADING
@@ -546,6 +570,9 @@
 
     async function loadTimesheets(startDate = '', endDate = '') {
       try {
+        const filterState = loadFilterStateFromURL();
+        const scrollY = filterState.scrollY;
+
         document.getElementById('tableBody').innerHTML = `
           <tr>
             <td colspan="12" class="loading">
@@ -584,7 +611,13 @@
           processData();
         }
 
+        // PERBAIKAN: Simpan state dan restore scroll HANYA setelah data selesai dirender
         saveFilterStateToURL();
+        
+        // Restore scroll position setelah data selesai diproses
+        if (scrollY) {
+          restoreScrollPosition(scrollY);
+        }
 
       } catch (err) {
         console.error('Error loading timesheets:', err);
@@ -1040,13 +1073,17 @@
       loadTimesheets();
     });
 
-    let scrollTimeout;
+    let isPageInitialized = false;
+
     window.addEventListener('scroll', () => {
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
-        saveFilterStateToURL();
-      }, 200);
-    });
+  // Jangan simpan scroll selama initial load
+  if (!isPageInitialized) return;
+  
+  clearTimeout(scrollTimeout);
+  scrollTimeout = setTimeout(() => {
+    saveFilterStateToURL();
+  }, 200);
+});
 
     // ========================================
     // GLOBAL FUNCTIONS
@@ -1061,19 +1098,14 @@
 
     const filterState = loadFilterStateFromURL();
 
-    if (filterState.startDate && filterState.endDate) {
-      loadTimesheets(`${filterState.startDate} 00:00:00`, `${filterState.endDate} 23:59:59`).then(() => {
-        if (filterState.scrollY) {
-          restoreScrollPosition(filterState.scrollY);
-        }
-      });
-    } else {
-      loadTimesheets().then(() => {
-        if (filterState.scrollY) {
-          restoreScrollPosition(filterState.scrollY);
-        }
-      });
-    }
+    // Inisialisasi dengan delay untuk memastikan DOM siap
+    setTimeout(() => {
+      if (filterState.startDate && filterState.endDate) {
+        loadTimesheets(`${filterState.startDate} 00:00:00`, `${filterState.endDate} 23:59:59`);
+      } else {
+        loadTimesheets();
+      }
+    }, 100);
 </script>
 </body>
 

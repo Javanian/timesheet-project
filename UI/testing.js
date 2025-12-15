@@ -1,4 +1,4 @@
-getUserByNfc("42:b7:db:69").then(data => {
+getUserByNfc("8b:f0:f1:a3").then(data => {
   if (data) {
     console.log("User ditemukan:", data);
     sessionStorage.setItem("datakaryawan", JSON.stringify(data));
@@ -14,3 +14,7 @@ fetch('/timesheet/getsn/123')
     console.log(data); 
   })
   .catch(error => console.error('Error:', error));
+
+  8b:f0:f1:a3
+
+  42:b7:db:69

@@ -795,23 +795,14 @@ let originalData = {};
         currentData[key] !== (originalData[key] || '')
       );
 
-      if (hasChanges) {
-        if (confirm('You have unsaved changes. Are you sure you want to leave?')) {
-          // ✅ Kembali dengan filter
-          if (returnUrl) {
-            window.location.href = decodeURIComponent(returnUrl);
-          } else {
-            window.location.href = 'tsuye';
-          }
-        }
-      } else {
-        // ✅ Kembali dengan filter
-        if (returnUrl) {
-          window.location.href = decodeURIComponent(returnUrl);
-        } else {
-          window.location.href = 'tsuye';
-        }
-      }
+      if (hasChanges && !confirm('You have unsaved changes. Are you sure you want to leave?')) {
+    return; // User cancel, jangan navigate
+  }
+
+  // ✅ Navigate kembali dengan filter & scroll position
+  window.location.href = returnUrl 
+    ? decodeURIComponent(returnUrl) 
+    : 'tsuye';
     }
 
     // Event listeners
